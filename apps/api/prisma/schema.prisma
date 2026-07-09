@@ -1,0 +1,336 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  OPERATOR
+  EXECUTOR
+  MANAGER
+  LEADER
+  CITIZEN
+}
+
+enum OrganizationType {
+  HOKIMLIK
+  KOMMUNAL
+  BOSHQARMA
+  AGENTLIK
+}
+
+enum AppealStatus {
+  NEW
+  AI_ANALYZING
+  OPERATOR_REVIEW
+  ASSIGNED
+  ACCEPTED
+  IN_PROGRESS
+  WAITING_CITIZEN_INFO
+  WAITING_EVIDENCE
+  COMPLETED
+  REJECTED
+  REOPENED
+  OVERDUE
+  CLOSED
+}
+
+enum AppealPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum AppealSource {
+  WEB
+  TELEGRAM
+  MOBILE
+  OPERATOR
+  QR
+}
+
+enum NotificationType {
+  APPEAL_CREATED
+  AI_READY
+  ASSIGNED
+  STATUS_CHANGED
+  DEADLINE_REMINDER
+  OVERDUE_ALERT
+  COMMENT
+  SYSTEM
+}
+
+enum ReportType {
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+model User {
+  id             String   @id @default(uuid())
+  fullName       String
+  phone          String?  @unique
+  email          String   @unique
+  passwordHash   String
+  role           Role     @default(CITIZEN)
+  organizationId String?
+  departmentId   String?
+  telegramChatId String?  @unique
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization       Organization?         @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  department         Department?           @relation("DepartmentUsers", fields: [departmentId], references: [id], onDelete: SetNull)
+  managedDepartments Department[]          @relation("DepartmentManager")
+  assignedAppeals    Appeal[]              @relation("AssignedAppeals")
+  createdAppeals     Appeal[]              @relation("CreatedAppeals")
+  comments           AppealComment[]
+  attachments        AppealAttachment[]
+  statusChanges      AppealStatusHistory[]
+  notifications      Notification[]
+  auditLogs          AuditLog[]
+  refreshTokens      RefreshToken[]
+  reports            Report[]
+
+  @@index([organizationId])
+  @@index([departmentId])
+  @@index([role])
+}
+
+model Organization {
+  id        String           @id @default(uuid())
+  name      String
+  type      OrganizationType @default(HOKIMLIK)
+  region    String
+  district  String
+  address   String?
+  phone     String?
+  email     String?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  users       User[]
+  departments Department[]
+  appeals     Appeal[]
+  reports     Report[]
+  settings    Setting[]
+}
+
+model Department {
+  id             String   @id @default(uuid())
+  name           String
+  organizationId String
+  managerId      String?
+  description    String?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  manager      User?        @relation("DepartmentManager", fields: [managerId], references: [id], onDelete: SetNull)
+  users        User[]       @relation("DepartmentUsers")
+  appeals      Appeal[]
+  categories   Category[]
+
+  @@index([organizationId])
+}
+
+model Category {
+  id                   String  @id @default(uuid())
+  name                 String  @unique
+  description          String?
+  defaultDeadlineHours Int     @default(72)
+  departmentId         String?
+  isActive             Boolean @default(true)
+
+  department Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  appeals    Appeal[]
+}
+
+model Appeal {
+  id                     String         @id @default(uuid())
+  appealNumber           String         @unique
+  title                  String
+  description            String
+  citizenName            String
+  citizenPhone           String
+  citizenJshshir         String?
+  source                 AppealSource   @default(WEB)
+  status                 AppealStatus   @default(NEW)
+  priority               AppealPriority @default(MEDIUM)
+  categoryId             String?
+  organizationId         String
+  departmentId           String?
+  assignedToId           String?
+  createdById            String?
+  region                 String?
+  district               String?
+  mahalla                String?
+  address                String?
+  latitude               Float?
+  longitude              Float?
+  deadlineAt             DateTime?
+  closedAt               DateTime?
+  completedAt            DateTime?
+  rejectedReason         String?
+  aiSummary              String?
+  aiCategorySuggestion   String?
+  aiPrioritySuggestion   String?
+  aiDepartmentSuggestion String?
+  aiResponseDraft        String?
+  aiSentiment            String?
+  aiMissingInfo          String[]       @default([])
+  aiKeywords             String[]       @default([])
+  citizenRating          Int?
+  citizenFeedback        String?
+  citizenTelegramChatId  String?
+  duplicateGroupId       String?
+  reminder24Sent         Boolean        @default(false)
+  reminder6Sent          Boolean        @default(false)
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
+
+  category      Category?             @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  organization  Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  department    Department?           @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  assignedTo    User?                 @relation("AssignedAppeals", fields: [assignedToId], references: [id], onDelete: SetNull)
+  createdBy     User?                 @relation("CreatedAppeals", fields: [createdById], references: [id], onDelete: SetNull)
+  comments      AppealComment[]
+  attachments   AppealAttachment[]
+  statusHistory AppealStatusHistory[]
+
+  @@index([organizationId, status])
+  @@index([departmentId])
+  @@index([assignedToId])
+  @@index([categoryId])
+  @@index([createdAt])
+  @@index([deadlineAt])
+  @@index([mahalla])
+}
+
+model AppealComment {
+  id         String   @id @default(uuid())
+  appealId   String
+  userId     String?
+  message    String
+  isInternal Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  appeal Appeal @relation(fields: [appealId], references: [id], onDelete: Cascade)
+  user   User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([appealId])
+}
+
+model AppealAttachment {
+  id           String   @id @default(uuid())
+  appealId     String
+  fileName     String
+  filePath     String
+  mimeType     String
+  size         Int
+  uploadedById String?
+  createdAt    DateTime @default(now())
+
+  appeal     Appeal @relation(fields: [appealId], references: [id], onDelete: Cascade)
+  uploadedBy User?  @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  @@index([appealId])
+}
+
+model AppealStatusHistory {
+  id          String        @id @default(uuid())
+  appealId    String
+  fromStatus  AppealStatus?
+  toStatus    AppealStatus
+  changedById String?
+  comment     String?
+  createdAt   DateTime      @default(now())
+
+  appeal    Appeal @relation(fields: [appealId], references: [id], onDelete: Cascade)
+  changedBy User?  @relation(fields: [changedById], references: [id], onDelete: SetNull)
+
+  @@index([appealId])
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  title     String
+  message   String
+  type      NotificationType @default(SYSTEM)
+  isRead    Boolean          @default(false)
+  meta      Json?
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  action    String
+  entity    String
+  entityId  String?
+  oldValue  Json?
+  newValue  Json?
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([entity, entityId])
+  @@index([createdAt])
+}
+
+model Report {
+  id             String     @id @default(uuid())
+  organizationId String
+  type           ReportType
+  title          String
+  content        Json
+  aiSummary      String?
+  filePath       String?
+  createdById    String?
+  createdAt      DateTime   @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy    User?        @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, type])
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Setting {
+  id             String   @id @default(uuid())
+  organizationId String?
+  key            String
+  value          String
+  updatedAt      DateTime @updatedAt
+
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, key])
+}

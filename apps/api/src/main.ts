@@ -1,0 +1,51 @@
+import { ValidationPipe, Logger } from '@nestjs/common';
+import { NestFactory } from '@nestjs/core';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import helmet from 'helmet';
+import { AppModule } from './app.module';
+import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
+import type { NestExpressApplication } from '@nestjs/platform-express';
+import { join } from 'path';
+
+async function bootstrap() {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const logger = new Logger('Bootstrap');
+
+  app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+  app.enableCors({
+    origin: (process.env.WEB_URL || 'http://localhost:3000').split(','),
+    credentials: true,
+  });
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      transform: true,
+      forbidNonWhitelisted: false,
+      transformOptions: { enableImplicitConversion: true },
+    }),
+  );
+  app.useGlobalFilters(new AllExceptionsFilter());
+  app.useStaticAssets(join(process.cwd(), process.env.UPLOAD_DIR || './uploads'), {
+    prefix: '/static/',
+  });
+
+  if (process.env.SWAGGER_ENABLED !== 'false') {
+    const config = new DocumentBuilder()
+      .setTitle('Smart Murojaat AI API')
+      .setDescription(
+        'Hokimliklar va davlat tashkilotlari uchun AI asosidagi murojaatlar platformasi API hujjati',
+      )
+      .setVersion('1.0')
+      .addBearerAuth()
+      .build();
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('docs', app, document, {
+      swaggerOptions: { persistAuthorization: true },
+    });
+  }
+
+  const port = parseInt(process.env.API_PORT || '3001', 10);
+  await app.listen(port);
+  logger.log(`API http://localhost:${port} | Swagger: /docs`);
+}
+bootstrap();

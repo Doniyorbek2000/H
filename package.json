@@ -1,0 +1,32 @@
+{
+  "name": "smart-murojaat-ai",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Smart Murojaat AI - hokimliklar va davlat tashkilotlari uchun AI asosidagi murojaatlar platformasi",
+  "scripts": {
+    "build": "pnpm -r build",
+    "dev:api": "pnpm --filter @smart/api dev",
+    "dev:web": "pnpm --filter @smart/web dev",
+    "dev:bot": "pnpm --filter @smart/bot dev",
+    "prisma:generate": "pnpm --filter @smart/api prisma:generate",
+    "prisma:migrate": "pnpm --filter @smart/api prisma:migrate",
+    "seed": "pnpm --filter @smart/api seed",
+    "lint": "pnpm -r --if-present lint",
+    "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\""
+  },
+  "devDependencies": {
+    "prettier": "^3.3.3"
+  },
+  "packageManager": "pnpm@10.33.0",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@prisma/client",
+      "@prisma/engines",
+      "prisma",
+      "esbuild",
+      "sharp",
+      "@nestjs/core",
+      "unrs-resolver"
+    ]
+  }
+}
