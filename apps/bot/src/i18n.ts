@@ -20,7 +20,26 @@ const DICT = {
   menuNew: { uz: '📝 Yangi murojaat', ru: '📝 Новое обращение' },
   menuMy: { uz: '📋 Mening murojaatlarim', ru: '📋 Мои обращения' },
   menuTrack: { uz: '🔍 Holat tekshirish', ru: '🔍 Проверить статус' },
+  menuAi: { uz: '🤖 AI yordamchi', ru: '🤖 ИИ-помощник' },
   menuHelp: { uz: '❓ Yordam', ru: '❓ Помощь' },
+  askAiQuestion: {
+    uz: '🤖 Savolingizni yozing — AI yordamchi javob beradi (kommunal xizmatlar, murojaatlar, davlat xizmatlari bo‘yicha):',
+    ru: '🤖 Напишите ваш вопрос — ИИ-помощник ответит (коммунальные услуги, обращения, госуслуги):',
+  },
+  aiThinking: { uz: '🤖 O‘ylayapman...', ru: '🤖 Думаю...' },
+  aiError: {
+    uz: 'AI javob bera olmadi, keyinroq urinib ko‘ring.',
+    ru: 'ИИ не смог ответить, попробуйте позже.',
+  },
+  actionApproved: {
+    uz: '✅ Murojaat ko‘rib chiqishga tasdiqlandi.',
+    ru: '✅ Обращение подтверждено к рассмотрению.',
+  },
+  actionRejected: { uz: '❌ Murojaat rad etildi.', ru: '❌ Обращение отклонено.' },
+  actionError: {
+    uz: 'Amalni bajarib bo‘lmadi. Akkauntingiz bog‘langanini tekshiring (/login).',
+    ru: 'Не удалось выполнить действие. Проверьте привязку аккаунта (/login).',
+  },
   chooseCategory: { uz: 'Murojaat yo‘nalishini tanlang:', ru: 'Выберите направление обращения:' },
   categoryAuto: { uz: '🤖 AI o‘zi aniqlasin', ru: '🤖 Пусть определит ИИ' },
   askTitle: {
@@ -206,7 +225,7 @@ export function statusLabel(lang: Lang, status: string): string {
 }
 
 /** Menyu tugmalarining ikkala tildagi variantlari (hears uchun) */
-export function menuVariants(key: 'menuNew' | 'menuMy' | 'menuTrack' | 'menuHelp'): string[] {
+export function menuVariants(key: 'menuNew' | 'menuMy' | 'menuTrack' | 'menuHelp' | 'menuAi'): string[] {
   return [DICT[key].uz, DICT[key].ru];
 }
 
