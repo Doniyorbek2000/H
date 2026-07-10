@@ -4,6 +4,7 @@ import { existsSync, mkdirSync } from 'fs';
 import { extname, join } from 'path';
 import { v4 as uuid } from 'uuid';
 import { PrismaService } from '../../prisma/prisma.service';
+import { StorageService } from './storage.service';
 
 const ALLOWED_MIME = [
   'image/jpeg',
@@ -46,32 +47,43 @@ export function multerOptions() {
 
 @Injectable()
 export class FilesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storage: StorageService,
+  ) {}
 
   async attachToAppeal(appealId: string, files: Express.Multer.File[], uploadedById?: string) {
     if (!files || files.length === 0) {
       throw new BadRequestException('Fayl yuborilmadi');
     }
-    const created = await this.prisma.$transaction(
-      files.map((f) =>
-        this.prisma.appealAttachment.create({
+    const created = [];
+    for (const f of files) {
+      const filePath = await this.storage.store(f.filename, f.mimetype);
+      created.push(
+        await this.prisma.appealAttachment.create({
           data: {
             appealId,
             fileName: Buffer.from(f.originalname, 'latin1').toString('utf8'),
-            filePath: f.filename,
+            filePath,
             mimeType: f.mimetype,
             size: f.size,
             uploadedById,
           },
         }),
-      ),
-    );
+      );
+    }
     return created;
   }
 
   async findOne(id: string) {
     const file = await this.prisma.appealAttachment.findUnique({ where: { id } });
     if (!file) throw new NotFoundException('Fayl topilmadi');
-    return { ...file, url: `/static/${file.filePath}` };
+    return { ...file, url: await this.storage.getUrl(file.filePath) };
+  }
+
+  async resolveRaw(id: string) {
+    const file = await this.prisma.appealAttachment.findUnique({ where: { id } });
+    if (!file) throw new NotFoundException('Fayl topilmadi');
+    return { file, target: await this.storage.resolve(file.filePath) };
   }
 }

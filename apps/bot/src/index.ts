@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 import { Bot, InlineKeyboard, Keyboard } from 'grammy';
-import { STATUS_LABELS_UZ } from '@smart/shared';
 import { apiCall, ApiError, uploadAppealFiles } from './api';
+import { continueVariants, Lang, menuVariants, statusLabel, t } from './i18n';
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 if (!token) {
@@ -32,7 +32,7 @@ type Step =
 
 interface Session {
   step: Step;
-  lang: 'uz' | 'ru';
+  lang: Lang;
   citizenName?: string;
   citizenPhone?: string;
   categoryId?: string;
@@ -58,43 +58,46 @@ function getSession(chatId: string): Session {
   return s;
 }
 
-const MAIN_MENU = new Keyboard()
-  .text('📝 Yangi murojaat')
-  .text('📋 Mening murojaatlarim')
-  .row()
-  .text('🔍 Holat tekshirish')
-  .text('❓ Yordam')
-  .resized()
-  .persistent();
+function mainMenu(lang: Lang) {
+  return new Keyboard()
+    .text(t(lang, 'menuNew'))
+    .text(t(lang, 'menuMy'))
+    .row()
+    .text(t(lang, 'menuTrack'))
+    .text(t(lang, 'menuHelp'))
+    .resized()
+    .persistent();
+}
 
-// ============ /start ============
+// ============ /start va til tanlash ============
 
-bot.command('start', async (ctx) => {
+async function askLanguage(ctx: any) {
   const s = getSession(String(ctx.chat.id));
   s.step = 'lang';
-  await ctx.reply(
-    '🏛 <b>Smart Murojaat AI</b> botiga xush kelibsiz!\n\nTilni tanlang / Выберите язык:',
-    {
-      parse_mode: 'HTML',
-      reply_markup: new InlineKeyboard().text("🇺🇿 O'zbekcha", 'lang:uz').text('🇷🇺 Русский', 'lang:ru'),
-    },
-  );
-});
+  await ctx.reply(t(s.lang, 'welcome'), {
+    parse_mode: 'HTML',
+    reply_markup: new InlineKeyboard().text("🇺🇿 O'zbekcha", 'lang:uz').text('🇷🇺 Русский', 'lang:ru'),
+  });
+}
+
+bot.command('start', askLanguage);
+bot.command('lang', askLanguage);
 
 bot.callbackQuery(/^lang:(uz|ru)$/, async (ctx) => {
   const s = getSession(String(ctx.chat!.id));
-  s.lang = ctx.match[1] as 'uz' | 'ru';
-  s.step = 'phone';
+  s.lang = ctx.match[1] as Lang;
   await ctx.answerCallbackQuery();
-  const text =
-    s.lang === 'ru'
-      ? 'Отправьте свой номер телефона (кнопка ниже) 👇'
-      : 'Telefon raqamingizni yuboring (quyidagi tugma orqali) 👇';
-  await ctx.reply(text, {
-    reply_markup: new Keyboard()
-      .requestContact(s.lang === 'ru' ? '📱 Отправить номер' : '📱 Raqamni yuborish')
-      .resized()
-      .oneTime(),
+  if (s.citizenPhone) {
+    s.step = 'idle';
+    await ctx.reply(t(s.lang, 'registered', { name: s.citizenName ?? '' }), {
+      parse_mode: 'HTML',
+      reply_markup: mainMenu(s.lang),
+    });
+    return;
+  }
+  s.step = 'phone';
+  await ctx.reply(t(s.lang, 'sendPhone'), {
+    reply_markup: new Keyboard().requestContact(t(s.lang, 'sendPhoneBtn')).resized().oneTime(),
   });
 });
 
@@ -107,10 +110,10 @@ bot.on('message:contact', async (ctx) => {
     .filter(Boolean)
     .join(' ');
   s.step = 'idle';
-  await ctx.reply(
-    `✅ Rahmat, <b>${s.citizenName}</b>!\n\nEndi murojaat yuborishingiz yoki mavjud murojaatingiz holatini tekshirishingiz mumkin.`,
-    { parse_mode: 'HTML', reply_markup: MAIN_MENU },
-  );
+  await ctx.reply(t(s.lang, 'registered', { name: s.citizenName }), {
+    parse_mode: 'HTML',
+    reply_markup: mainMenu(s.lang),
+  });
 });
 
 // ============ FUQARO: yangi murojaat ============
@@ -119,8 +122,8 @@ async function startNewAppeal(ctx: any) {
   const s = getSession(String(ctx.chat.id));
   if (!s.citizenPhone) {
     s.step = 'phone';
-    await ctx.reply('Avval telefon raqamingizni yuboring 👇', {
-      reply_markup: new Keyboard().requestContact('📱 Raqamni yuborish').resized().oneTime(),
+    await ctx.reply(t(s.lang, 'sendPhone'), {
+      reply_markup: new Keyboard().requestContact(t(s.lang, 'sendPhoneBtn')).resized().oneTime(),
     });
     return;
   }
@@ -134,16 +137,16 @@ async function startNewAppeal(ctx: any) {
       kb.text(c.name, `cat:${c.id}`);
       if (i % 2 === 1) kb.row();
     });
-    kb.row().text('🤖 AI o‘zi aniqlasin', 'cat:auto');
-    await ctx.reply('Murojaat yo‘nalishini tanlang:', { reply_markup: kb });
+    kb.row().text(t(s.lang, 'categoryAuto'), 'cat:auto');
+    await ctx.reply(t(s.lang, 'chooseCategory'), { reply_markup: kb });
   } catch {
     s.step = 'title';
-    await ctx.reply('Murojaat mavzusini qisqacha yozing:');
+    await ctx.reply(t(s.lang, 'askTitle'));
   }
 }
 
 bot.command('new_appeal', startNewAppeal);
-bot.hears('📝 Yangi murojaat', startNewAppeal);
+bot.hears(menuVariants('menuNew'), startNewAppeal);
 
 bot.callbackQuery(/^cat:(.+)$/, async (ctx) => {
   const s = getSession(String(ctx.chat!.id));
@@ -158,149 +161,137 @@ bot.callbackQuery(/^cat:(.+)$/, async (ctx) => {
   }
   s.step = 'title';
   await ctx.answerCallbackQuery();
-  await ctx.reply('✍️ Murojaat mavzusini qisqacha yozing (masalan: "Ko‘chada suv quvuri yorildi"):');
+  await ctx.reply(t(s.lang, 'askTitle'));
 });
 
 // ============ FUQARO: holat tekshirish / mening murojaatlarim ============
 
-bot.command('status', async (ctx) => {
-  getSession(String(ctx.chat.id)).step = 'track';
-  await ctx.reply('🔍 Murojaat raqamini yuboring (masalan: SM-20260709-0001):');
-});
-bot.hears('🔍 Holat tekshirish', async (ctx) => {
-  getSession(String(ctx.chat.id)).step = 'track';
-  await ctx.reply('🔍 Murojaat raqamini yuboring (masalan: SM-20260709-0001):');
-});
+async function askTrack(ctx: any) {
+  const s = getSession(String(ctx.chat.id));
+  s.step = 'track';
+  await ctx.reply(t(s.lang, 'askTrackNumber'));
+}
+bot.command('status', askTrack);
+bot.hears(menuVariants('menuTrack'), askTrack);
 
 async function myAppeals(ctx: any) {
+  const s = getSession(String(ctx.chat.id));
   try {
     const appeals = await apiCall<any[]>(`/telegram/citizen/${ctx.chat.id}/appeals`, {
       botAuth: true,
     });
     if (appeals.length === 0) {
-      await ctx.reply('Sizda hali murojaatlar yo‘q. 📝 "Yangi murojaat" tugmasini bosing.', {
-        reply_markup: MAIN_MENU,
+      await ctx.reply(t(s.lang, 'noAppeals', { btn: t(s.lang, 'menuNew') }), {
+        reply_markup: mainMenu(s.lang),
       });
       return;
     }
     const lines = appeals.map(
       (a) =>
-        `📋 <b>${a.appealNumber}</b>\n${a.title}\nHolat: ${
-          (STATUS_LABELS_UZ as any)[a.status] ?? a.status
-        }\n`,
+        `📋 <b>${a.appealNumber}</b>\n${a.title}\n${t(s.lang, 'trackStatus')}: ${statusLabel(
+          s.lang,
+          a.status,
+        )}\n`,
     );
-    await ctx.reply(lines.join('\n'), { parse_mode: 'HTML', reply_markup: MAIN_MENU });
-  } catch (e) {
-    await ctx.reply('Xatolik yuz berdi, keyinroq urinib ko‘ring.');
+    await ctx.reply(lines.join('\n'), { parse_mode: 'HTML', reply_markup: mainMenu(s.lang) });
+  } catch {
+    await ctx.reply(t(s.lang, 'genericError'));
   }
 }
 bot.command('my_appeals', myAppeals);
-bot.hears('📋 Mening murojaatlarim', myAppeals);
+bot.hears(menuVariants('menuMy'), myAppeals);
 
 bot.command('help', async (ctx) => {
-  await ctx.reply(
-    [
-      '🏛 <b>Smart Murojaat AI — yordam</b>',
-      '',
-      '👤 <b>Fuqarolar uchun:</b>',
-      '/new_appeal — yangi murojaat yuborish',
-      '/my_appeals — mening murojaatlarim',
-      '/status — murojaat holatini tekshirish',
-      '',
-      '👔 <b>Xodimlar uchun:</b>',
-      '/login — akkauntni bog‘lash',
-      '/report yoki /hisobot — umumiy hisobot',
-      '/today yoki /bugun — bugungi murojaatlar',
-      '/overdue yoki /kechikkanlar — kechikayotganlar',
-    ].join('\n'),
-    { parse_mode: 'HTML' },
-  );
+  const s = getSession(String(ctx.chat.id));
+  await ctx.reply(t(s.lang, 'help'), { parse_mode: 'HTML' });
 });
-bot.hears('❓ Yordam', (ctx) => ctx.reply('/help buyrug‘ini yuboring yoki menyudan foydalaning.', { reply_markup: MAIN_MENU }));
+bot.hears(menuVariants('menuHelp'), async (ctx) => {
+  const s = getSession(String(ctx.chat.id));
+  await ctx.reply(t(s.lang, 'help'), { parse_mode: 'HTML', reply_markup: mainMenu(s.lang) });
+});
 
 // ============ XODIM: login va hisobotlar ============
 
 bot.command('login', async (ctx) => {
   const s = getSession(String(ctx.chat.id));
   s.step = 'login_email';
-  await ctx.reply('👔 Xodim akkauntini bog‘lash.\n\nEmail manzilingizni yuboring:');
+  await ctx.reply(t(s.lang, 'loginAskEmail'));
 });
 
 async function staffSummary(ctx: any) {
+  const s = getSession(String(ctx.chat.id));
   try {
     const { user, overview } = await apiCall<any>(`/telegram/staff/${ctx.chat.id}/summary`, {
       botAuth: true,
     });
     await ctx.reply(
       [
-        `📊 <b>Hisobot</b> (${user.fullName})`,
+        t(s.lang, 'reportHeader', { name: user.fullName }),
         '',
-        `Jami murojaatlar: <b>${overview.total}</b>`,
-        `Bugun kelib tushgan: <b>${overview.today}</b>`,
-        `Jarayonda: <b>${overview.inProgress}</b>`,
-        `Bajarilgan: <b>${overview.completed}</b>`,
-        `⚠️ Kechikayotgan: <b>${overview.overdue}</b>`,
-        `🚨 Shoshilinch: <b>${overview.urgent}</b>`,
-        `O‘rtacha baho: <b>${overview.avgRating ?? '—'}</b>`,
+        `${t(s.lang, 'reportTotal')}: <b>${overview.total}</b>`,
+        `${t(s.lang, 'reportToday')}: <b>${overview.today}</b>`,
+        `${t(s.lang, 'reportInProgress')}: <b>${overview.inProgress}</b>`,
+        `${t(s.lang, 'reportCompleted')}: <b>${overview.completed}</b>`,
+        `${t(s.lang, 'reportOverdue')}: <b>${overview.overdue}</b>`,
+        `${t(s.lang, 'reportUrgent')}: <b>${overview.urgent}</b>`,
+        `${t(s.lang, 'reportRating')}: <b>${overview.avgRating ?? '—'}</b>`,
       ].join('\n'),
       { parse_mode: 'HTML' },
     );
   } catch (e) {
-    if (e instanceof ApiError && e.status === 404) {
-      await ctx.reply('Bu buyruq faqat xodimlar uchun. Avval /login orqali akkauntingizni bog‘lang.');
-    } else {
-      await ctx.reply('Xatolik yuz berdi, keyinroq urinib ko‘ring.');
-    }
+    await ctx.reply(
+      e instanceof ApiError && e.status === 404 ? t(s.lang, 'staffOnly') : t(s.lang, 'genericError'),
+    );
   }
 }
 bot.command(['report', 'hisobot'], staffSummary);
 
 async function staffToday(ctx: any) {
+  const s = getSession(String(ctx.chat.id));
   try {
     const appeals = await apiCall<any[]>(`/telegram/staff/${ctx.chat.id}/today`, { botAuth: true });
     if (appeals.length === 0) {
-      await ctx.reply('📭 Bugun yangi murojaatlar yo‘q.');
+      await ctx.reply(t(s.lang, 'todayEmpty'));
       return;
     }
     const lines = appeals.map(
       (a) =>
-        `• <b>${a.appealNumber}</b> — ${a.title}\n  ${(STATUS_LABELS_UZ as any)[a.status] ?? a.status} · ${a.category?.name ?? ''}`,
+        `• <b>${a.appealNumber}</b> — ${a.title}\n  ${statusLabel(s.lang, a.status)} · ${a.category?.name ?? ''}`,
     );
-    await ctx.reply(`📅 <b>Bugungi murojaatlar (${appeals.length} ta):</b>\n\n${lines.join('\n')}`, {
+    await ctx.reply(`${t(s.lang, 'todayHeader', { n: appeals.length })}\n\n${lines.join('\n')}`, {
       parse_mode: 'HTML',
     });
   } catch (e) {
-    if (e instanceof ApiError && e.status === 404) {
-      await ctx.reply('Bu buyruq faqat xodimlar uchun. Avval /login orqali akkauntingizni bog‘lang.');
-    } else {
-      await ctx.reply('Xatolik yuz berdi.');
-    }
+    await ctx.reply(
+      e instanceof ApiError && e.status === 404 ? t(s.lang, 'staffOnly') : t(s.lang, 'genericError'),
+    );
   }
 }
 bot.command(['today', 'bugun'], staffToday);
 
 async function staffOverdue(ctx: any) {
+  const s = getSession(String(ctx.chat.id));
   try {
     const list = await apiCall<any[]>(`/telegram/staff/${ctx.chat.id}/overdue`, { botAuth: true });
     if (list.length === 0) {
-      await ctx.reply('✅ Kechikayotgan murojaatlar yo‘q!');
+      await ctx.reply(t(s.lang, 'overdueEmpty'));
       return;
     }
     const lines = list
       .slice(0, 15)
       .map(
         (a) =>
-          `⚠️ <b>${a.appealNumber}</b> — ${a.title}\n  Mas’ul: ${a.assignedTo ?? 'biriktirilmagan'} · ${a.department ?? ''}`,
+          `⚠️ <b>${a.appealNumber}</b> — ${a.title}\n  ${t(s.lang, 'overdueAssignee')}: ${
+            a.assignedTo ?? t(s.lang, 'unassigned')
+          } · ${a.department ?? ''}`,
       );
-    await ctx.reply(`🔴 <b>Kechikayotgan murojaatlar (${list.length} ta):</b>\n\n${lines.join('\n')}`, {
+    await ctx.reply(`${t(s.lang, 'overdueHeader', { n: list.length })}\n\n${lines.join('\n')}`, {
       parse_mode: 'HTML',
     });
   } catch (e) {
-    if (e instanceof ApiError && e.status === 404) {
-      await ctx.reply('Bu buyruq faqat xodimlar uchun. Avval /login orqali akkauntingizni bog‘lang.');
-    } else {
-      await ctx.reply('Xatolik yuz berdi.');
-    }
+    await ctx.reply(
+      e instanceof ApiError && e.status === 404 ? t(s.lang, 'staffOnly') : t(s.lang, 'genericError'),
+    );
   }
 }
 bot.command(['overdue', 'kechikkanlar'], staffOverdue);
@@ -313,7 +304,7 @@ bot.hears(/^\/baho_(.+)$/, async (ctx) => {
   s.step = 'rate';
   const kb = new InlineKeyboard();
   for (let i = 1; i <= 5; i++) kb.text('⭐'.repeat(i), `rate:${i}`);
-  await ctx.reply(`${s.rateNumber} murojaati bo‘yicha xizmatni baholang:`, { reply_markup: kb });
+  await ctx.reply(t(s.lang, 'ratePrompt', { num: s.rateNumber }), { reply_markup: kb });
 });
 
 bot.callbackQuery(/^rate:([1-5])$/, async (ctx) => {
@@ -325,9 +316,9 @@ bot.callbackQuery(/^rate:([1-5])$/, async (ctx) => {
       method: 'POST',
       body: { rating: Number(ctx.match[1]), chatId: String(ctx.chat!.id) },
     });
-    await ctx.reply('🙏 Bahoyingiz uchun rahmat! Fikringiz xizmatni yaxshilashga yordam beradi.');
+    await ctx.reply(t(s.lang, 'rateThanks'));
   } catch (e) {
-    await ctx.reply(e instanceof ApiError ? e.message : 'Baholashda xatolik.');
+    await ctx.reply(e instanceof ApiError ? e.message : t(s.lang, 'rateError'));
   }
   s.rateNumber = undefined;
   s.step = 'idle';
@@ -348,10 +339,9 @@ bot.on('message:location', async (ctx) => {
 async function askMedia(ctx: any, s: Session) {
   s.step = 'media';
   s.media = [];
-  await ctx.reply(
-    '📷 Muammoni tasdiqlovchi rasm, video yoki hujjat yuborishingiz mumkin (5 tagacha, ixtiyoriy).\n\nTugatgach "➡️ Davom etish" tugmasini bosing:',
-    { reply_markup: new Keyboard().text('➡️ Davom etish').resized().oneTime() },
-  );
+  await ctx.reply(t(s.lang, 'askMedia', { btn: t(s.lang, 'continueBtn') }), {
+    reply_markup: new Keyboard().text(t(s.lang, 'continueBtn')).resized().oneTime(),
+  });
 }
 
 bot.on('message:photo', async (ctx) => {
@@ -361,11 +351,11 @@ bot.on('message:photo', async (ctx) => {
   const best = sizes[sizes.length - 1];
   s.media = s.media ?? [];
   if (s.media.length >= 5) {
-    await ctx.reply('Maksimal 5 ta fayl. "➡️ Davom etish" tugmasini bosing.');
+    await ctx.reply(t(s.lang, 'mediaLimit', { btn: t(s.lang, 'continueBtn') }));
     return;
   }
   s.media.push({ fileId: best.file_id, name: `photo_${s.media.length + 1}.jpg`, mime: 'image/jpeg' });
-  await ctx.reply(`✅ Rasm qabul qilindi (${s.media.length}/5). Yana yuborishingiz yoki davom etishingiz mumkin.`);
+  await ctx.reply(t(s.lang, 'photoAccepted', { n: s.media.length }));
 });
 
 bot.on('message:video', async (ctx) => {
@@ -378,7 +368,7 @@ bot.on('message:video', async (ctx) => {
     name: `video_${s.media.length + 1}.mp4`,
     mime: 'video/mp4',
   });
-  await ctx.reply(`✅ Video qabul qilindi (${s.media.length}/5).`);
+  await ctx.reply(t(s.lang, 'videoAccepted', { n: s.media.length }));
 });
 
 bot.on('message:document', async (ctx) => {
@@ -392,7 +382,7 @@ bot.on('message:document', async (ctx) => {
     name: doc.file_name ?? `hujjat_${s.media.length + 1}`,
     mime: doc.mime_type ?? 'application/pdf',
   });
-  await ctx.reply(`✅ Hujjat qabul qilindi (${s.media.length}/5).`);
+  await ctx.reply(t(s.lang, 'docAccepted', { n: s.media.length }));
 });
 
 /** Telegram serveridan faylni yuklab olish */
@@ -408,25 +398,27 @@ async function downloadTelegramFile(fileId: string): Promise<ArrayBuffer | null>
   }
 }
 
+// ============ Tasdiqlash va yuborish ============
+
 async function confirmAppeal(ctx: any, s: Session) {
   s.step = 'confirm';
   await ctx.reply(
     [
-      '📋 <b>Murojaatni tasdiqlang:</b>',
+      t(s.lang, 'confirmHeader'),
       '',
       `👤 ${s.citizenName} (${s.citizenPhone})`,
-      `📌 Mavzu: ${s.title}`,
+      `${t(s.lang, 'confirmTopic')}: ${s.title}`,
       `📝 ${s.description}`,
-      `🏘 Mahalla: ${s.mahalla ?? '—'}`,
-      `📂 Yo‘nalish: ${s.categoryName ?? 'AI aniqlaydi'}`,
-      s.latitude ? `📍 Lokatsiya: yuborildi` : '📍 Lokatsiya: yo‘q',
-      `📎 Fayllar: ${s.media?.length ?? 0} ta`,
+      `${t(s.lang, 'confirmMahalla')}: ${s.mahalla ?? '—'}`,
+      `${t(s.lang, 'confirmCategory')}: ${s.categoryName ?? t(s.lang, 'confirmCategoryAuto')}`,
+      s.latitude ? t(s.lang, 'confirmLocationSent') : t(s.lang, 'confirmLocationNone'),
+      t(s.lang, 'confirmFiles', { n: s.media?.length ?? 0 }),
     ].join('\n'),
     {
       parse_mode: 'HTML',
       reply_markup: new InlineKeyboard()
-        .text('✅ Yuborish', 'confirm:yes')
-        .text('❌ Bekor qilish', 'confirm:no'),
+        .text(t(s.lang, 'confirmSendBtn'), 'confirm:yes')
+        .text(t(s.lang, 'confirmCancelBtn'), 'confirm:no'),
     },
   );
 }
@@ -436,7 +428,7 @@ bot.callbackQuery(/^confirm:(yes|no)$/, async (ctx) => {
   await ctx.answerCallbackQuery();
   if (ctx.match[1] === 'no' || s.step !== 'confirm') {
     s.step = 'idle';
-    await ctx.reply('Murojaat bekor qilindi.', { reply_markup: MAIN_MENU });
+    await ctx.reply(t(s.lang, 'cancelled'), { reply_markup: mainMenu(s.lang) });
     return;
   }
   try {
@@ -470,21 +462,14 @@ bot.callbackQuery(/^confirm:(yes|no)$/, async (ctx) => {
       }
     }
 
-    await ctx.reply(
-      [
-        '✅ <b>Murojaatingiz qabul qilindi!</b>',
-        '',
-        `📋 Murojaat raqami: <b>${created.appealNumber}</b>`,
-        '',
-        'Murojaatingiz AI yordamida tahlil qilinib, mas’ul bo‘limga yo‘naltiriladi.',
-        'Holat o‘zgarishi haqida shu yerda xabar olasiz. 🔔',
-      ].join('\n'),
-      { parse_mode: 'HTML', reply_markup: MAIN_MENU },
-    );
+    await ctx.reply(t(s.lang, 'created', { num: created.appealNumber }), {
+      parse_mode: 'HTML',
+      reply_markup: mainMenu(s.lang),
+    });
   } catch (e) {
     await ctx.reply(
-      e instanceof ApiError ? `❌ ${e.message}` : '❌ Yuborishda xatolik. Keyinroq urinib ko‘ring.',
-      { reply_markup: MAIN_MENU },
+      e instanceof ApiError ? `❌ ${e.message}` : t(s.lang, 'createError'),
+      { reply_markup: mainMenu(s.lang) },
     );
   }
   // Sessiyani tozalash (telefon saqlanadi)
@@ -505,29 +490,35 @@ bot.on('message:text', async (ctx) => {
     case 'title':
       s.title = text.slice(0, 300);
       s.step = 'description';
-      await ctx.reply('📝 Endi muammoni batafsil yozing (qachondan beri, qayerda, kimlarga ta’sir qilmoqda):');
+      await ctx.reply(t(s.lang, 'askDescription'));
       break;
     case 'description':
       if (text.length < 10) {
-        await ctx.reply('Iltimos, kamida 10 belgidan iborat batafsil tavsif yozing.');
+        await ctx.reply(t(s.lang, 'descriptionTooShort'));
         return;
       }
       s.description = text.slice(0, 5000);
       s.step = 'mahalla';
-      await ctx.reply('🏘 Mahalla nomini yozing (yoki "-" deb yuboring):');
+      await ctx.reply(t(s.lang, 'askMahalla'));
       break;
     case 'mahalla':
       s.mahalla = text === '-' ? undefined : text;
       s.step = 'location';
-      await ctx.reply('📍 Joylashuvni yuboring (skrepka → Lokatsiya) yoki "-" deb yozing:', {
-        reply_markup: new Keyboard().requestLocation('📍 Lokatsiyani yuborish').text('-').resized().oneTime(),
+      await ctx.reply(t(s.lang, 'askLocation'), {
+        reply_markup: new Keyboard()
+          .requestLocation(t(s.lang, 'sendLocationBtn'))
+          .text('-')
+          .resized()
+          .oneTime(),
       });
       break;
     case 'location':
       await askMedia(ctx, s);
       break;
     case 'media':
-      await confirmAppeal(ctx, s);
+      if (text === '-' || continueVariants().includes(text)) {
+        await confirmAppeal(ctx, s);
+      }
       break;
     case 'track':
       s.step = 'idle';
@@ -538,27 +529,31 @@ bot.on('message:text', async (ctx) => {
             `📋 <b>${a.appealNumber}</b>`,
             a.title,
             '',
-            `Holat: <b>${(STATUS_LABELS_UZ as any)[a.status] ?? a.status}</b>`,
-            `Yo‘nalish: ${a.category?.name ?? '—'}`,
-            `Bo‘lim: ${a.department?.name ?? '—'}`,
-            a.deadlineAt ? `Muddat: ${new Date(a.deadlineAt).toLocaleString('uz-UZ')}` : '',
-            ...(a.comments?.length ? ['', '💬 Oxirgi javob:', a.comments[0].message] : []),
+            `${t(s.lang, 'trackStatus')}: <b>${statusLabel(s.lang, a.status)}</b>`,
+            `${t(s.lang, 'trackCategory')}: ${a.category?.name ?? '—'}`,
+            `${t(s.lang, 'trackDepartment')}: ${a.department?.name ?? '—'}`,
+            a.deadlineAt
+              ? `${t(s.lang, 'trackDeadline')}: ${new Date(a.deadlineAt).toLocaleString(
+                  s.lang === 'ru' ? 'ru-RU' : 'uz-UZ',
+                )}`
+              : '',
+            ...(a.comments?.length ? ['', t(s.lang, 'trackLastReply'), a.comments[0].message] : []),
           ]
             .filter(Boolean)
             .join('\n'),
-          { parse_mode: 'HTML', reply_markup: MAIN_MENU },
+          { parse_mode: 'HTML', reply_markup: mainMenu(s.lang) },
         );
       } catch (e) {
         await ctx.reply(
-          e instanceof ApiError ? `❌ ${e.message}` : 'Topilmadi. Raqamni tekshirib qayta yuboring.',
-          { reply_markup: MAIN_MENU },
+          e instanceof ApiError ? `❌ ${e.message}` : t(s.lang, 'trackNotFound'),
+          { reply_markup: mainMenu(s.lang) },
         );
       }
       break;
     case 'login_email':
       s.loginEmail = text;
       s.step = 'login_password';
-      await ctx.reply('🔑 Parolingizni yuboring (xabar darhol o‘chiriladi):');
+      await ctx.reply(t(s.lang, 'loginAskPassword'));
       break;
     case 'login_password': {
       s.step = 'idle';
@@ -573,20 +568,17 @@ bot.on('message:text', async (ctx) => {
           botAuth: true,
           body: { identifier: s.loginEmail, password: text, chatId: String(ctx.chat.id) },
         });
-        await ctx.reply(
-          `✅ Akkaunt bog‘landi: <b>${res.user.fullName}</b> (${res.user.role})\n\nEndi /hisobot, /bugun, /kechikkanlar buyruqlaridan foydalanishingiz va yangi vazifalar haqida xabar olishingiz mumkin.`,
-          { parse_mode: 'HTML' },
-        );
+        await ctx.reply(t(s.lang, 'loginSuccess', { name: res.user.fullName, role: res.user.role }), {
+          parse_mode: 'HTML',
+        });
       } catch (e) {
-        await ctx.reply(e instanceof ApiError ? `❌ ${e.message}` : '❌ Bog‘lashda xatolik.');
+        await ctx.reply(e instanceof ApiError ? `❌ ${e.message}` : t(s.lang, 'loginError'));
       }
       s.loginEmail = undefined;
       break;
     }
     default:
-      await ctx.reply('Quyidagi menyudan foydalaning yoki /help buyrug‘ini yuboring 👇', {
-        reply_markup: MAIN_MENU,
-      });
+      await ctx.reply(t(s.lang, 'useMenu'), { reply_markup: mainMenu(s.lang) });
   }
 });
 
@@ -594,15 +586,16 @@ bot.on('message:text', async (ctx) => {
 
 bot.api
   .setMyCommands([
-    { command: 'start', description: 'Botni ishga tushirish' },
-    { command: 'new_appeal', description: 'Yangi murojaat yuborish' },
-    { command: 'my_appeals', description: 'Mening murojaatlarim' },
-    { command: 'status', description: 'Murojaat holatini tekshirish' },
-    { command: 'help', description: 'Yordam' },
-    { command: 'login', description: 'Xodim akkauntini bog‘lash' },
-    { command: 'report', description: 'Hisobot (xodimlar)' },
-    { command: 'today', description: 'Bugungi murojaatlar (xodimlar)' },
-    { command: 'overdue', description: 'Kechikkan murojaatlar (xodimlar)' },
+    { command: 'start', description: 'Botni ishga tushirish / Запуск бота' },
+    { command: 'new_appeal', description: 'Yangi murojaat / Новое обращение' },
+    { command: 'my_appeals', description: 'Mening murojaatlarim / Мои обращения' },
+    { command: 'status', description: 'Holat tekshirish / Проверить статус' },
+    { command: 'lang', description: 'Tilni o‘zgartirish / Сменить язык' },
+    { command: 'help', description: 'Yordam / Помощь' },
+    { command: 'login', description: 'Xodim akkauntini bog‘lash / Привязать аккаунт' },
+    { command: 'report', description: 'Hisobot (xodimlar) / Отчёт' },
+    { command: 'today', description: 'Bugungi murojaatlar / Сегодняшние' },
+    { command: 'overdue', description: 'Kechikkanlar / Просроченные' },
   ])
   .catch((e) => console.warn('setMyCommands xatosi:', e.message));
 

@@ -361,7 +361,7 @@ export default function AppealDetailPage() {
               {appeal.attachments.map((f: any) => (
                 <a
                   key={f.id}
-                  href={`${API_URL}/static/${f.filePath}`}
+                  href={`${API_URL}/files/${f.id}/raw`}
                   target="_blank"
                   rel="noreferrer"
                   className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2 text-sm hover:bg-slate-50"

@@ -9,13 +9,14 @@ Hokimliklar, davlat tashkilotlari va kommunal xizmatlar uchun **AI asosidagi mur
 - 🔁 **To'liq ijro oqimi** — NEW → AI_ANALYZING → OPERATOR_REVIEW → ASSIGNED → ACCEPTED → IN_PROGRESS → COMPLETED → CLOSED (+ OVERDUE, REOPENED, REJECTED, WAITING_*)
 - ⏰ **Muddat nazorati** — kategoriya bo'yicha standart muddatlar, 24/6 soat eslatmalar, muddat o'tsa avtomatik OVERDUE + ogohlantirish
 - 📊 **Rahbar dashboardi** — statistik kartalar, 30 kunlik trend, kategoriya/mahalla kesimi, kechikayotganlar
-- 🗺 **Xarita** — murojaatlar OpenStreetMap ustida status bo'yicha ranglangan
+- 🗺 **Xarita** — murojaatlar OpenStreetMap ustida status bo'yicha ranglangan, **heatmap rejimi** (ustuvorlik og'irligi bilan)
 - 🏆 **KPI** — xodimlar samaradorlik ball (formula asosida) va bo'limlar reytingi
 - 📄 **Hisobotlar** — kunlik/haftalik/oylik, AI xulosa, **PDF va Excel** eksport
 - 🔔 **Bildirishnomalar** — in-app + Telegram (xodimga vazifa, muddat eslatmasi, fuqaroga holat o'zgarishi)
 - 🤝 **Takroriy murojaatlar** — yaratishda semantik o'xshashlik bo'yicha avto-aniqlash, operator tomonidan birlashtirish (`POST /appeals/:id/merge`), fuqaroga xabar
 - 🔐 **Xavfsizlik** — JWT access/refresh (rotation), rol asosidagi ruxsatlar, tashkilot doirasi (org scope), rate limit, helmet, fayl validatsiyasi, audit log
-- 📱 **Telegram bot** — fuqaro: murojaat yuborish/kuzatish/baholash; xodim: /hisobot, /bugun, /kechikkanlar
+- 📱 **Telegram bot** — to'liq **o'zbek/rus** tillarida; fuqaro: murojaat yuborish/kuzatish/baholash; xodim: /hisobot, /bugun, /kechikkanlar
+- 🗄 **Storage abstraksiyasi** — default lokal disk; `S3_*` env berilsa **MinIO/S3** ga yuklaydi (presigned URL), `docker compose --profile s3` bilan lokal MinIO
 
 ## 🧱 Texnologiyalar
 
@@ -144,7 +145,7 @@ Barcha ro'yxat endpointlarida: `page`, `limit`, `search`, `sortBy`, `sortOrder` 
 - `SWAGGER_ENABLED=false`
 - Nginx reverse-proxy + HTTPS (namuna: `deploy/nginx.conf.example`, certbot)
 - PostgreSQL backup (pg_dump cron), `uploads` volume backup
-- Fayllar uchun keyinchalik MinIO/S3 ga o'tish (FilesService abstraksiyasi tayyor)
+- Fayllar uchun MinIO/S3: `.env` da `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY` to'ldiring — yangi fayllar S3 ga tushadi, eski lokal fayllar ishlashda davom etadi (`/files/:id/raw` ikkalasini ham biladi). Lokal MinIO: `docker compose --profile s3 up -d` (konsol: http://localhost:9001)
 - Telegram botni webhook rejimiga o'tkazish (yuqori yuklamada)
 
 ## 🧪 Tekshirilgan buyruqlar
