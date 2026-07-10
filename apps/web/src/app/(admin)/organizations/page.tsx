@@ -78,15 +78,15 @@ export default function OrganizationsPage() {
         {data?.data.map((o: any) => (
           <Card key={o.id} className="p-5">
             <div className="mb-3 flex items-start justify-between">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-50 text-primary-600">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-50 dark:bg-primary-900/30 text-primary-600">
                 <Landmark size={19} />
               </div>
               <div className="flex items-center gap-1">
-                <Badge className="border-primary-200 bg-primary-50 text-primary-700">
+                <Badge className="border-primary-200 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300">
                   {TYPE_LABELS[o.type] ?? o.type}
                 </Badge>
                 <button
-                  className="rounded p-1.5 text-slate-400 hover:bg-slate-100"
+                  className="rounded p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
                   onClick={() => {
                     setForm({
                       name: o.name, type: o.type, region: o.region, district: o.district,

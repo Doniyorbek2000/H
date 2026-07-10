@@ -13,7 +13,7 @@ const ACTION_COLORS: Record<string, string> = {
   APPEAL_CREATE: 'border-green-200 bg-green-50 text-green-700',
   APPEAL_STATUS_CHANGE: 'border-yellow-200 bg-yellow-50 text-yellow-700',
   APPEAL_ASSIGN: 'border-indigo-200 bg-indigo-50 text-indigo-700',
-  APPEAL_REJECT: 'border-red-200 bg-red-50 text-red-700',
+  APPEAL_REJECT: 'border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300',
 };
 
 export default function AuditPage() {
@@ -57,7 +57,7 @@ export default function AuditPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500">
+                <tr className="border-b border-slate-200 dark:border-slate-700 text-left text-xs uppercase text-slate-500">
                   <th className="px-4 py-3">Vaqt</th>
                   <th className="px-4 py-3">Foydalanuvchi</th>
                   <th className="px-4 py-3">Amal</th>
@@ -68,14 +68,14 @@ export default function AuditPage() {
               </thead>
               <tbody>
                 {data.data.map((l: any) => (
-                  <tr key={l.id} className="border-b border-slate-100 align-top hover:bg-slate-50">
+                  <tr key={l.id} className="border-b border-slate-100 dark:border-slate-800 align-top hover:bg-slate-50 dark:hover:bg-slate-800/60">
                     <td className="whitespace-nowrap px-4 py-3 text-xs">{fmtDate(l.createdAt)}</td>
                     <td className="px-4 py-3">
                       <div className="font-medium">{l.user?.fullName ?? 'Tizim'}</div>
                       <div className="text-xs text-slate-400">{l.user?.email ?? ''}</div>
                     </td>
                     <td className="px-4 py-3">
-                      <Badge className={ACTION_COLORS[l.action] ?? 'border-slate-200 bg-slate-50 text-slate-600'}>
+                      <Badge className={ACTION_COLORS[l.action] ?? 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300'}>
                         {l.action}
                       </Badge>
                     </td>

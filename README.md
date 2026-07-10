@@ -11,6 +11,7 @@ Hokimliklar, davlat tashkilotlari va kommunal xizmatlar uchun **AI asosidagi mur
 - 📊 **Rahbar dashboardi** — statistik kartalar, 30 kunlik trend, kategoriya/mahalla kesimi, kechikayotganlar
 - 🗺 **Xarita** — murojaatlar OpenStreetMap ustida status bo'yicha ranglangan, **heatmap rejimi** (ustuvorlik og'irligi bilan)
 - 🏆 **KPI** — xodimlar samaradorlik ball (formula asosida) va bo'limlar reytingi
+- 🌙 **Dark mode** — navbar'dagi tugma bilan almashinadi, tanlov saqlanadi, tizim temasiga mos default
 - 📄 **Hisobotlar** — kunlik/haftalik/oylik, AI xulosa, **PDF va Excel** eksport
 - 🔔 **Bildirishnomalar** — in-app + Telegram (xodimga vazifa, muddat eslatmasi, fuqaroga holat o'zgarishi)
 - 🤝 **Takroriy murojaatlar** — yaratishda semantik o'xshashlik bo'yicha avto-aniqlash, operator tomonidan birlashtirish (`POST /appeals/:id/merge`), fuqaroga xabar

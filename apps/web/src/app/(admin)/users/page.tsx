@@ -100,7 +100,7 @@ export default function UsersPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500">
+                <tr className="border-b border-slate-200 dark:border-slate-700 text-left text-xs uppercase text-slate-500">
                   <th className="px-4 py-3">Xodim</th>
                   <th className="px-4 py-3">Rol</th>
                   <th className="px-4 py-3">Bo‘lim</th>
@@ -112,13 +112,13 @@ export default function UsersPage() {
               </thead>
               <tbody>
                 {data.data.map((u: any) => (
-                  <tr key={u.id} className="border-b border-slate-100 hover:bg-slate-50">
+                  <tr key={u.id} className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/60">
                     <td className="px-4 py-3">
                       <div className="font-medium">{u.fullName}</div>
                       <div className="text-xs text-slate-400">{u.email}</div>
                     </td>
                     <td className="px-4 py-3">
-                      <Badge className="border-primary-200 bg-primary-50 text-primary-700">
+                      <Badge className="border-primary-200 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300">
                         {(ROLE_LABELS_UZ as any)[u.role]}
                       </Badge>
                     </td>
@@ -134,7 +134,7 @@ export default function UsersPage() {
                       <td className="px-4 py-3">
                         <div className="flex justify-end gap-1">
                           <button
-                            className="rounded p-1.5 text-slate-500 hover:bg-slate-100"
+                            className="rounded p-1.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
                             onClick={() => {
                               setForm({ fullName: u.fullName, email: u.email, phone: u.phone ?? '', password: '', role: u.role, departmentId: u.departmentId ?? '', isActive: u.isActive });
                               setModal({ mode: 'edit', id: u.id });
@@ -143,7 +143,7 @@ export default function UsersPage() {
                             <Pencil size={15} />
                           </button>
                           {u.isActive && (
-                            <button className="rounded p-1.5 text-red-500 hover:bg-red-50" onClick={() => setDeactivate(u.id)}>
+                            <button className="rounded p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40" onClick={() => setDeactivate(u.id)}>
                               <UserX size={15} />
                             </button>
                           )}

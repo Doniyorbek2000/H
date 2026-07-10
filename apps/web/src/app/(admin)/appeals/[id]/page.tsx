@@ -126,7 +126,7 @@ export default function AppealDetailPage() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <button onClick={() => router.back()} className="rounded-lg p-2 hover:bg-slate-100">
+          <button onClick={() => router.back()} className="rounded-lg p-2 hover:bg-slate-100 dark:hover:bg-slate-800">
             <ArrowLeft size={18} />
           </button>
           <div>
@@ -170,51 +170,51 @@ export default function AppealDetailPage() {
         <div className="space-y-4 lg:col-span-2">
           <Card className="p-5">
             <h2 className="mb-2 text-lg font-semibold">{appeal.title}</h2>
-            <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-700">{appeal.description}</p>
+            <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-700 dark:text-slate-200">{appeal.description}</p>
             {appeal.rejectedReason && (
-              <div className="mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+              <div className="mt-3 rounded-lg bg-red-50 dark:bg-red-950/40 p-3 text-sm text-red-700 dark:text-red-300">
                 <b>Rad etish sababi:</b> {appeal.rejectedReason}
               </div>
             )}
           </Card>
 
-          <Card className="border-violet-200 bg-violet-50/50 p-5">
+          <Card className="border-violet-200 dark:border-violet-900 bg-violet-50/50 dark:bg-violet-950/30 p-5">
             <div className="mb-3 flex items-center gap-2">
               <Bot size={18} className="text-violet-600" />
-              <h3 className="text-sm font-semibold text-violet-900">AI tahlil va tavsiyalar</h3>
+              <h3 className="text-sm font-semibold text-violet-900 dark:text-violet-200">AI tahlil va tavsiyalar</h3>
             </div>
             {appeal.aiSummary ? (
               <div className="space-y-3 text-sm">
                 <p><b>Qisqa mazmun:</b> {appeal.aiSummary}</p>
                 <div className="grid gap-2 sm:grid-cols-2">
-                  <div className="rounded-lg bg-white p-3">
+                  <div className="rounded-lg bg-white dark:bg-slate-900 p-3">
                     <div className="text-xs text-slate-500">Tavsiya etilgan kategoriya</div>
                     <div className="font-medium">{appeal.aiCategorySuggestion ?? '—'}</div>
                   </div>
-                  <div className="rounded-lg bg-white p-3">
+                  <div className="rounded-lg bg-white dark:bg-slate-900 p-3">
                     <div className="text-xs text-slate-500">Tavsiya etilgan bo‘lim</div>
                     <div className="font-medium">{appeal.aiDepartmentSuggestion ?? '—'}</div>
                   </div>
-                  <div className="rounded-lg bg-white p-3">
+                  <div className="rounded-lg bg-white dark:bg-slate-900 p-3">
                     <div className="text-xs text-slate-500">Ustuvorlik / Kayfiyat</div>
                     <div className="font-medium">
                       {appeal.aiPrioritySuggestion ?? '—'} / {appeal.aiSentiment ?? '—'}
                     </div>
                   </div>
-                  <div className="rounded-lg bg-white p-3">
+                  <div className="rounded-lg bg-white dark:bg-slate-900 p-3">
                     <div className="text-xs text-slate-500">Kalit so‘zlar</div>
                     <div className="font-medium">{appeal.aiKeywords?.join(', ') || '—'}</div>
                   </div>
                 </div>
                 {appeal.aiMissingInfo?.length > 0 && (
-                  <div className="rounded-lg bg-amber-50 p-3 text-amber-800">
+                  <div className="rounded-lg bg-amber-50 dark:bg-amber-950/40 p-3 text-amber-800 dark:text-amber-300">
                     <b>Yetishmayotgan ma’lumotlar:</b> {appeal.aiMissingInfo.join(', ')}
                   </div>
                 )}
                 {appeal.aiResponseDraft && (
-                  <div className="rounded-lg bg-white p-3">
+                  <div className="rounded-lg bg-white dark:bg-slate-900 p-3">
                     <div className="mb-1 text-xs text-slate-500">Fuqaroga javob loyihasi (AI)</div>
-                    <p className="text-slate-700">{appeal.aiResponseDraft}</p>
+                    <p className="text-slate-700 dark:text-slate-200">{appeal.aiResponseDraft}</p>
                   </div>
                 )}
               </div>
@@ -234,10 +234,10 @@ export default function AppealDetailPage() {
               {appeal.comments.map((c: any) => (
                 <div
                   key={c.id}
-                  className={`rounded-lg p-3 text-sm ${c.isInternal ? 'border border-amber-200 bg-amber-50' : 'bg-slate-50'}`}
+                  className={`rounded-lg p-3 text-sm ${c.isInternal ? 'border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/40' : 'bg-slate-50 dark:bg-slate-800/60'}`}
                 >
                   <div className="mb-1 flex items-center justify-between text-xs text-slate-500">
-                    <span className="font-medium text-slate-700">
+                    <span className="font-medium text-slate-700 dark:text-slate-200">
                       {c.user?.fullName ?? 'Tizim'}
                       {c.isInternal && ' · 🔒 ichki izoh'}
                     </span>
@@ -260,7 +260,7 @@ export default function AppealDetailPage() {
             >
               <Textarea rows={2} placeholder="Izoh yozing..." value={comment} onChange={(e) => setComment(e.target.value)} />
               <div className="flex items-center justify-between">
-                <label className="flex cursor-pointer items-center gap-2 text-xs text-slate-600">
+                <label className="flex cursor-pointer items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
                   <input type="checkbox" checked={isInternal} onChange={(e) => setIsInternal(e.target.checked)} className="h-3.5 w-3.5" />
                   Ichki izoh (fuqaroga ko‘rinmaydi)
                 </label>
@@ -274,8 +274,8 @@ export default function AppealDetailPage() {
 
         <div className="space-y-4">
           {appeal.duplicates?.length > 0 && (
-            <Card className="border-pink-200 bg-pink-50/50 p-5">
-              <h3 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-pink-900">
+            <Card className="border-pink-200 dark:border-pink-900 bg-pink-50/50 dark:bg-pink-950/30 p-5">
+              <h3 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-pink-900 dark:text-pink-200">
                 <Copy size={15} /> O‘xshash / takroriy murojaatlar
               </h3>
               <div className="space-y-2">
@@ -283,7 +283,7 @@ export default function AppealDetailPage() {
                   <Link
                     key={d.id}
                     href={`/appeals/${d.id}`}
-                    className="block rounded-lg bg-white px-3 py-2 text-sm hover:bg-pink-50"
+                    className="block rounded-lg bg-white dark:bg-slate-900 px-3 py-2 text-sm hover:bg-pink-50 dark:hover:bg-pink-950/40"
                   >
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-mono text-xs">{d.appealNumber}</span>
@@ -291,7 +291,7 @@ export default function AppealDetailPage() {
                         {(STATUS_LABELS_UZ as any)[d.status]}
                       </Badge>
                     </div>
-                    <div className="truncate text-xs text-slate-600">{d.title}</div>
+                    <div className="truncate text-xs text-slate-600 dark:text-slate-300">{d.title}</div>
                   </Link>
                 ))}
               </div>
@@ -364,7 +364,7 @@ export default function AppealDetailPage() {
                   href={`${API_URL}/files/${f.id}/raw`}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2 text-sm hover:bg-slate-50"
+                  className="flex items-center justify-between rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-800/60"
                 >
                   <span className="truncate">{f.fileName}</span>
                   <span className="text-xs text-slate-400">{Math.round(f.size / 1024)} KB</span>
@@ -379,15 +379,15 @@ export default function AppealDetailPage() {
               {appeal.statusHistory.map((h: any, i: number) => (
                 <div key={h.id} className="relative flex gap-3 pb-4">
                   {i < appeal.statusHistory.length - 1 && (
-                    <div className="absolute left-[7px] top-4 h-full w-0.5 bg-slate-200" />
+                    <div className="absolute left-[7px] top-4 h-full w-0.5 bg-slate-200 dark:bg-slate-700" />
                   )}
-                  <div className="relative mt-1 h-3.5 w-3.5 shrink-0 rounded-full border-2 border-primary-500 bg-white" />
+                  <div className="relative mt-1 h-3.5 w-3.5 shrink-0 rounded-full border-2 border-primary-500 bg-white dark:bg-slate-900" />
                   <div className="min-w-0 text-sm">
                     <div className="font-medium">{(STATUS_LABELS_UZ as any)[h.toStatus] ?? h.toStatus}</div>
                     <div className="text-xs text-slate-500">
                       {h.changedBy?.fullName ?? 'Tizim'} · {fmtDate(h.createdAt)}
                     </div>
-                    {h.comment && <div className="mt-0.5 text-xs text-slate-600">{h.comment}</div>}
+                    {h.comment && <div className="mt-0.5 text-xs text-slate-600 dark:text-slate-300">{h.comment}</div>}
                   </div>
                 </div>
               ))}
@@ -571,7 +571,7 @@ export default function AppealDetailPage() {
           }}
           className="space-y-3"
         >
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-slate-600 dark:text-slate-300">
             Ushbu murojaat takroriy deb belgilanadi va ko‘rsatilgan asosiy murojaatga bog‘lanadi.
             Fuqaroga xabar yuboriladi.
           </p>

@@ -4,7 +4,17 @@ import { useEffect, useState } from 'react';
 import { Landmark, Search, Send } from 'lucide-react';
 import { api } from '@/lib/api';
 import { STATUS_LABELS_UZ, STATUS_BADGE, fmtDate } from '@/lib/labels';
-import { Badge, Button, Card, Input, Label, Select, Textarea, useToast } from '@/components/ui';
+import {
+  Badge,
+  Button,
+  Card,
+  Input,
+  Label,
+  Select,
+  Textarea,
+  ThemeToggle,
+  useToast,
+} from '@/components/ui';
 
 interface Category {
   id: string;
@@ -20,6 +30,7 @@ export default function PublicPortal() {
     description: '',
     citizenName: '',
     citizenPhone: '',
+    citizenJshshir: '',
     mahalla: '',
     address: '',
     categoryId: '',
@@ -48,6 +59,7 @@ export default function PublicPortal() {
         body: {
           ...form,
           categoryId: form.categoryId || undefined,
+          citizenJshshir: form.citizenJshshir || undefined,
           source: 'WEB',
         },
       });
@@ -93,21 +105,24 @@ export default function PublicPortal() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-primary-50 to-white">
-      <header className="border-b border-slate-200 bg-white">
+    <div className="min-h-screen bg-gradient-to-b from-primary-50 to-white dark:from-slate-950 dark:to-slate-900">
+      <header className="border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-4">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-600 text-white">
               <Landmark size={20} />
             </div>
             <div>
-              <h1 className="font-bold text-slate-900">Smart Murojaat AI</h1>
+              <h1 className="font-bold text-slate-900 dark:text-slate-100">Smart Murojaat AI</h1>
               <p className="text-xs text-slate-500">Fuqarolar murojaatlari portali</p>
             </div>
           </div>
-          <a href="/login" className="text-sm text-primary-600 hover:underline">
-            Xodimlar uchun kirish
-          </a>
+          <div className="flex items-center gap-1">
+            <ThemeToggle />
+            <a href="/login" className="text-sm text-primary-600 hover:underline">
+              Xodimlar uchun kirish
+            </a>
+          </div>
         </div>
       </header>
 
@@ -151,6 +166,17 @@ export default function PublicPortal() {
                     placeholder="+998901234567"
                   />
                 </div>
+              </div>
+              <div>
+                <Label>JShShIR (ixtiyoriy, 14 raqam)</Label>
+                <Input
+                  value={form.citizenJshshir}
+                  onChange={(e) => setForm({ ...form, citizenJshshir: e.target.value })}
+                  placeholder="12345678901234"
+                  maxLength={14}
+                  pattern="[0-9]{14}"
+                  title="14 ta raqamdan iborat JShShIR"
+                />
               </div>
               <div>
                 <Label>Murojaat mavzusi *</Label>
@@ -217,10 +243,10 @@ export default function PublicPortal() {
               ✅
             </div>
             <h2 className="mb-2 text-xl font-bold">Murojaatingiz qabul qilindi!</h2>
-            <p className="mb-4 text-sm text-slate-600">
+            <p className="mb-4 text-sm text-slate-600 dark:text-slate-300">
               Murojaat raqamingizni saqlab qo‘ying — holatni shu raqam orqali kuzatasiz:
             </p>
-            <div className="mb-6 inline-block rounded-xl bg-primary-50 px-6 py-3 text-2xl font-bold text-primary-700">
+            <div className="mb-6 inline-block rounded-xl bg-primary-50 dark:bg-primary-900/30 px-6 py-3 text-2xl font-bold text-primary-700 dark:text-primary-300">
               {result.appealNumber}
             </div>
             <p className="mb-6 text-sm text-slate-500">
@@ -244,10 +270,10 @@ export default function PublicPortal() {
               <Button type="submit">Tekshirish</Button>
             </form>
             {trackError && (
-              <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{trackError}</div>
+              <div className="rounded-lg bg-red-50 dark:bg-red-950/40 px-3 py-2 text-sm text-red-700 dark:text-red-300">{trackError}</div>
             )}
             {tracked && (
-              <div className="space-y-3 rounded-lg border border-slate-200 p-4">
+              <div className="space-y-3 rounded-lg border border-slate-200 dark:border-slate-700 p-4">
                 <div className="flex items-center justify-between">
                   <span className="font-mono text-sm font-semibold">{tracked.appealNumber}</span>
                   <Badge className={STATUS_BADGE[tracked.status]}>
@@ -256,14 +282,14 @@ export default function PublicPortal() {
                   </Badge>
                 </div>
                 <p className="font-medium">{tracked.title}</p>
-                <div className="grid grid-cols-2 gap-2 text-sm text-slate-600">
+                <div className="grid grid-cols-2 gap-2 text-sm text-slate-600 dark:text-slate-300">
                   <div>Yo‘nalish: {tracked.category?.name ?? '—'}</div>
                   <div>Bo‘lim: {tracked.department?.name ?? '—'}</div>
                   <div>Yuborilgan: {fmtDate(tracked.createdAt)}</div>
                   <div>Muddat: {fmtDate(tracked.deadlineAt)}</div>
                 </div>
                 {['COMPLETED', 'CLOSED'].includes(tracked.status) && !tracked.citizenRating && !ratingSent && (
-                  <div className="border-t border-slate-100 pt-3">
+                  <div className="border-t border-slate-100 dark:border-slate-800 pt-3">
                     <p className="mb-2 text-sm font-medium">Xizmatni baholang:</p>
                     <div className="flex gap-1">
                       {[1, 2, 3, 4, 5].map((v) => (
@@ -283,15 +309,15 @@ export default function PublicPortal() {
                   </div>
                 )}
                 {(tracked.citizenRating || ratingSent) && (
-                  <div className="border-t border-slate-100 pt-3 text-sm text-slate-600">
+                  <div className="border-t border-slate-100 dark:border-slate-800 pt-3 text-sm text-slate-600 dark:text-slate-300">
                     Sizning bahoyingiz: {'⭐'.repeat(tracked.citizenRating ?? rating)} — rahmat!
                   </div>
                 )}
                 {tracked.comments?.length > 0 && (
-                  <div className="border-t border-slate-100 pt-3">
+                  <div className="border-t border-slate-100 dark:border-slate-800 pt-3">
                     <p className="mb-2 text-xs font-semibold text-slate-500">Javoblar:</p>
                     {tracked.comments.map((c: any, i: number) => (
-                      <div key={i} className="mb-2 rounded-lg bg-slate-50 p-3 text-sm">
+                      <div key={i} className="mb-2 rounded-lg bg-slate-50 dark:bg-slate-800/60 p-3 text-sm">
                         {c.message}
                         <div className="mt-1 text-xs text-slate-400">{fmtDate(c.createdAt)}</div>
                       </div>

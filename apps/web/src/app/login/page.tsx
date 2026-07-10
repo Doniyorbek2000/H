@@ -40,7 +40,7 @@ export default function LoginPage() {
             Murojaatlar bilan ishlash boshqaruv paneli
           </p>
         </div>
-        <form onSubmit={submit} className="rounded-2xl bg-white p-6 shadow-2xl">
+        <form onSubmit={submit} className="rounded-2xl bg-white dark:bg-slate-900 p-6 shadow-2xl">
           <div className="mb-4">
             <Label>Email yoki telefon</Label>
             <Input
@@ -62,7 +62,7 @@ export default function LoginPage() {
             />
           </div>
           {error && (
-            <div className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
+            <div className="mb-4 rounded-lg bg-red-50 dark:bg-red-950/40 px-3 py-2 text-sm text-red-700 dark:text-red-300">{error}</div>
           )}
           <Button type="submit" disabled={loading} className="w-full">
             {loading ? 'Kirilmoqda...' : 'Kirish'}

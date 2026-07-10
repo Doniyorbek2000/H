@@ -72,14 +72,14 @@ export default function DepartmentsPage() {
         {data?.data.map((d: any) => (
           <Card key={d.id} className="p-5">
             <div className="mb-3 flex items-start justify-between">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-50 text-primary-600">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-50 dark:bg-primary-900/30 text-primary-600">
                 <Building2 size={19} />
               </div>
               <div className="flex items-center gap-1">
                 {!d.isActive && <Badge className="border-gray-200 bg-gray-100 text-gray-600">Faol emas</Badge>}
                 {canEdit && (
                   <button
-                    className="rounded p-1.5 text-slate-400 hover:bg-slate-100"
+                    className="rounded p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
                     onClick={() => {
                       setForm({ name: d.name, description: d.description ?? '', managerId: d.managerId ?? '' });
                       setModal({ mode: 'edit', id: d.id });
@@ -100,7 +100,7 @@ export default function DepartmentsPage() {
             {d.categories?.length > 0 && (
               <div className="mt-3 flex flex-wrap gap-1">
                 {d.categories.map((c: any) => (
-                  <Badge key={c.id} className="border-slate-200 bg-slate-50 text-slate-600">{c.name}</Badge>
+                  <Badge key={c.id} className="border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300">{c.name}</Badge>
                 ))}
               </div>
             )}

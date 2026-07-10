@@ -69,7 +69,7 @@ export default function CategoriesPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500">
+                <tr className="border-b border-slate-200 dark:border-slate-700 text-left text-xs uppercase text-slate-500">
                   <th className="px-4 py-3">Nomi</th>
                   <th className="px-4 py-3">Tavsif</th>
                   <th className="px-4 py-3">Standart muddat</th>
@@ -81,7 +81,7 @@ export default function CategoriesPage() {
               </thead>
               <tbody>
                 {data.data.map((c: any) => (
-                  <tr key={c.id} className="border-b border-slate-100 hover:bg-slate-50">
+                  <tr key={c.id} className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/60">
                     <td className="px-4 py-3 font-medium">{c.name}</td>
                     <td className="max-w-[240px] truncate px-4 py-3 text-slate-500">{c.description ?? '—'}</td>
                     <td className="px-4 py-3">{c.defaultDeadlineHours} soat</td>
@@ -95,7 +95,7 @@ export default function CategoriesPage() {
                     <td className="px-4 py-3">
                       <div className="flex justify-end gap-1">
                         <button
-                          className="rounded p-1.5 text-slate-500 hover:bg-slate-100"
+                          className="rounded p-1.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
                           onClick={() => {
                             setForm({ name: c.name, description: c.description ?? '', defaultDeadlineHours: c.defaultDeadlineHours, departmentId: c.departmentId ?? '', isActive: c.isActive });
                             setModal({ mode: 'edit', id: c.id });
@@ -104,7 +104,7 @@ export default function CategoriesPage() {
                           <Pencil size={15} />
                         </button>
                         {c.isActive && (
-                          <button className="rounded p-1.5 text-red-500 hover:bg-red-50" onClick={() => setRemoveId(c.id)}>
+                          <button className="rounded p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40" onClick={() => setRemoveId(c.id)}>
                             <Trash2 size={15} />
                           </button>
                         )}

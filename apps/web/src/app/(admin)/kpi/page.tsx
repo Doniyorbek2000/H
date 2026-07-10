@@ -8,7 +8,7 @@ import { Badge, Card, EmptyState, ErrorState, TableSkeleton } from '@/components
 function scoreColor(score: number) {
   if (score >= 70) return 'border-green-200 bg-green-50 text-green-700';
   if (score >= 40) return 'border-yellow-200 bg-yellow-50 text-yellow-700';
-  return 'border-red-200 bg-red-50 text-red-700';
+  return 'border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300';
 }
 
 export default function KpiPage() {
@@ -32,7 +32,7 @@ export default function KpiPage() {
       {data && (
         <>
           <Card>
-            <div className="border-b border-slate-200 px-4 py-3">
+            <div className="border-b border-slate-200 dark:border-slate-700 px-4 py-3">
               <h3 className="text-sm font-semibold">🏢 Bo‘limlar reytingi</h3>
             </div>
             {data.departments.length === 0 ? (
@@ -41,7 +41,7 @@ export default function KpiPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500">
+                    <tr className="border-b border-slate-200 dark:border-slate-700 text-left text-xs uppercase text-slate-500">
                       <th className="px-4 py-3">#</th>
                       <th className="px-4 py-3">Bo‘lim</th>
                       <th className="px-4 py-3">Murojaatlar</th>
@@ -54,14 +54,14 @@ export default function KpiPage() {
                   </thead>
                   <tbody>
                     {data.departments.map((d: any, i: number) => (
-                      <tr key={d.departmentId} className="border-b border-slate-100">
+                      <tr key={d.departmentId} className="border-b border-slate-100 dark:border-slate-800">
                         <td className="px-4 py-3">{i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</td>
                         <td className="px-4 py-3 font-medium">{d.departmentName}</td>
                         <td className="px-4 py-3">{d.total}</td>
                         <td className="px-4 py-3">{d.completed}</td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
-                            <div className="h-2 w-24 overflow-hidden rounded-full bg-slate-100">
+                            <div className="h-2 w-24 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
                               <div className="h-full rounded-full bg-primary-500" style={{ width: `${d.completionRate}%` }} />
                             </div>
                             <span className="text-xs font-medium">{d.completionRate}%</span>
@@ -81,7 +81,7 @@ export default function KpiPage() {
           </Card>
 
           <Card>
-            <div className="flex items-center gap-2 border-b border-slate-200 px-4 py-3">
+            <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-700 px-4 py-3">
               <Trophy size={16} className="text-amber-500" />
               <h3 className="text-sm font-semibold">Xodimlar samaradorligi</h3>
             </div>
@@ -91,7 +91,7 @@ export default function KpiPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500">
+                    <tr className="border-b border-slate-200 dark:border-slate-700 text-left text-xs uppercase text-slate-500">
                       <th className="px-4 py-3">#</th>
                       <th className="px-4 py-3">Xodim</th>
                       <th className="px-4 py-3">Jami</th>
@@ -106,7 +106,7 @@ export default function KpiPage() {
                   </thead>
                   <tbody>
                     {data.users.map((u: any, i: number) => (
-                      <tr key={u.userId} className="border-b border-slate-100">
+                      <tr key={u.userId} className="border-b border-slate-100 dark:border-slate-800">
                         <td className="px-4 py-3">{i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}</td>
                         <td className="px-4 py-3">
                           <div className="font-medium">{u.fullName}</div>
