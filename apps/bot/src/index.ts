@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 import { Bot, InlineKeyboard, Keyboard } from 'grammy';
 import { STATUS_LABELS_UZ } from '@smart/shared';
-import { apiCall, ApiError } from './api';
+import { apiCall, ApiError, uploadAppealFiles } from './api';
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 if (!token) {
@@ -23,6 +23,7 @@ type Step =
   | 'description'
   | 'mahalla'
   | 'location'
+  | 'media'
   | 'confirm'
   | 'track'
   | 'login_email'
@@ -43,6 +44,7 @@ interface Session {
   longitude?: number;
   loginEmail?: string;
   rateNumber?: string;
+  media?: { fileId: string; name: string; mime: string }[];
 }
 
 const sessions = new Map<string, Session>();
@@ -338,8 +340,73 @@ bot.on('message:location', async (ctx) => {
   if (s.step !== 'location') return;
   s.latitude = ctx.message.location.latitude;
   s.longitude = ctx.message.location.longitude;
-  await confirmAppeal(ctx, s);
+  await askMedia(ctx, s);
 });
+
+// ============ Rasm / hujjat qabul qilish ============
+
+async function askMedia(ctx: any, s: Session) {
+  s.step = 'media';
+  s.media = [];
+  await ctx.reply(
+    '📷 Muammoni tasdiqlovchi rasm, video yoki hujjat yuborishingiz mumkin (5 tagacha, ixtiyoriy).\n\nTugatgach "➡️ Davom etish" tugmasini bosing:',
+    { reply_markup: new Keyboard().text('➡️ Davom etish').resized().oneTime() },
+  );
+}
+
+bot.on('message:photo', async (ctx) => {
+  const s = getSession(String(ctx.chat.id));
+  if (s.step !== 'media') return;
+  const sizes = ctx.message.photo;
+  const best = sizes[sizes.length - 1];
+  s.media = s.media ?? [];
+  if (s.media.length >= 5) {
+    await ctx.reply('Maksimal 5 ta fayl. "➡️ Davom etish" tugmasini bosing.');
+    return;
+  }
+  s.media.push({ fileId: best.file_id, name: `photo_${s.media.length + 1}.jpg`, mime: 'image/jpeg' });
+  await ctx.reply(`✅ Rasm qabul qilindi (${s.media.length}/5). Yana yuborishingiz yoki davom etishingiz mumkin.`);
+});
+
+bot.on('message:video', async (ctx) => {
+  const s = getSession(String(ctx.chat.id));
+  if (s.step !== 'media') return;
+  s.media = s.media ?? [];
+  if (s.media.length >= 5) return;
+  s.media.push({
+    fileId: ctx.message.video.file_id,
+    name: `video_${s.media.length + 1}.mp4`,
+    mime: 'video/mp4',
+  });
+  await ctx.reply(`✅ Video qabul qilindi (${s.media.length}/5).`);
+});
+
+bot.on('message:document', async (ctx) => {
+  const s = getSession(String(ctx.chat.id));
+  if (s.step !== 'media') return;
+  s.media = s.media ?? [];
+  if (s.media.length >= 5) return;
+  const doc = ctx.message.document;
+  s.media.push({
+    fileId: doc.file_id,
+    name: doc.file_name ?? `hujjat_${s.media.length + 1}`,
+    mime: doc.mime_type ?? 'application/pdf',
+  });
+  await ctx.reply(`✅ Hujjat qabul qilindi (${s.media.length}/5).`);
+});
+
+/** Telegram serveridan faylni yuklab olish */
+async function downloadTelegramFile(fileId: string): Promise<ArrayBuffer | null> {
+  try {
+    const file = await bot.api.getFile(fileId);
+    if (!file.file_path) return null;
+    const res = await fetch(`https://api.telegram.org/file/bot${token}/${file.file_path}`);
+    if (!res.ok) return null;
+    return await res.arrayBuffer();
+  } catch {
+    return null;
+  }
+}
 
 async function confirmAppeal(ctx: any, s: Session) {
   s.step = 'confirm';
@@ -353,6 +420,7 @@ async function confirmAppeal(ctx: any, s: Session) {
       `🏘 Mahalla: ${s.mahalla ?? '—'}`,
       `📂 Yo‘nalish: ${s.categoryName ?? 'AI aniqlaydi'}`,
       s.latitude ? `📍 Lokatsiya: yuborildi` : '📍 Lokatsiya: yo‘q',
+      `📎 Fayllar: ${s.media?.length ?? 0} ta`,
     ].join('\n'),
     {
       parse_mode: 'HTML',
@@ -387,6 +455,21 @@ bot.callbackQuery(/^confirm:(yes|no)$/, async (ctx) => {
         citizenTelegramChatId: String(ctx.chat!.id),
       },
     });
+
+    // Rasmlar/hujjatlarni Telegramdan yuklab olib, murojaatga biriktiramiz
+    if (s.media?.length) {
+      const files: { buffer: ArrayBuffer; name: string; mime: string }[] = [];
+      for (const m of s.media) {
+        const buffer = await downloadTelegramFile(m.fileId);
+        if (buffer) files.push({ buffer, name: m.name, mime: m.mime });
+      }
+      if (files.length) {
+        await uploadAppealFiles(created.id, files).catch((e) =>
+          console.warn('Fayl biriktirishda xato:', e.message),
+        );
+      }
+    }
+
     await ctx.reply(
       [
         '✅ <b>Murojaatingiz qabul qilindi!</b>',
@@ -408,6 +491,7 @@ bot.callbackQuery(/^confirm:(yes|no)$/, async (ctx) => {
   s.step = 'idle';
   s.title = s.description = s.mahalla = s.categoryId = s.categoryName = undefined;
   s.latitude = s.longitude = undefined;
+  s.media = undefined;
 });
 
 // ============ Matnli xabarlar (holat mashinasi) ============
@@ -440,6 +524,9 @@ bot.on('message:text', async (ctx) => {
       });
       break;
     case 'location':
+      await askMedia(ctx, s);
+      break;
+    case 'media':
       await confirmAppeal(ctx, s);
       break;
     case 'track':

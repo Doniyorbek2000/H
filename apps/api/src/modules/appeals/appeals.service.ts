@@ -417,7 +417,26 @@ export class AppealsService {
     if (actor.role === Role.CITIZEN) {
       appeal.comments = appeal.comments.filter((c) => !c.isInternal);
     }
-    return appeal;
+
+    // Takroriy guruhga kiruvchi boshqa murojaatlar
+    let duplicates: { id: string; appealNumber: string; title: string; status: AppealStatus }[] = [];
+    if (appeal.duplicateGroupId) {
+      duplicates = await this.prisma.appeal.findMany({
+        where: {
+          id: { not: appeal.id },
+          OR: [{ duplicateGroupId: appeal.duplicateGroupId }, { id: appeal.duplicateGroupId }],
+        },
+        select: { id: true, appealNumber: true, title: true, status: true },
+        take: 10,
+      });
+    } else {
+      duplicates = await this.prisma.appeal.findMany({
+        where: { duplicateGroupId: appeal.id },
+        select: { id: true, appealNumber: true, title: true, status: true },
+        take: 10,
+      });
+    }
+    return { ...appeal, duplicates };
   }
 
   private assertAccess(
@@ -802,6 +821,59 @@ export class AppealsService {
       newValue: { rating: dto.rating },
     });
     return { success: true, rating: updated.citizenRating };
+  }
+
+  /** Takroriy murojaatni asosiy murojaatga birlashtirish */
+  async merge(id: string, targetAppealNumber: string, comment: string | undefined, actor: AuthUser) {
+    const appeal = await this.findOne(id, actor);
+    const target = await this.prisma.appeal.findUnique({
+      where: { appealNumber: targetAppealNumber },
+    });
+    if (!target) throw new NotFoundException('Asosiy murojaat topilmadi');
+    if (target.id === id) throw new BadRequestException('Murojaatni o‘ziga birlashtirib bo‘lmaydi');
+    this.assertAccess(target, actor);
+
+    const groupId = target.duplicateGroupId ?? target.id;
+    await this.prisma.$transaction([
+      // Asosiy murojaat guruh boshi bo'ladi
+      this.prisma.appeal.update({
+        where: { id: target.id },
+        data: { duplicateGroupId: groupId },
+      }),
+      this.prisma.appeal.update({
+        where: { id },
+        data: {
+          duplicateGroupId: groupId,
+          status: AppealStatus.REJECTED,
+          rejectedReason: `Takroriy murojaat — ${target.appealNumber} bilan birlashtirildi`,
+          closedAt: new Date(),
+          statusHistory: {
+            create: {
+              fromStatus: appeal.status,
+              toStatus: AppealStatus.REJECTED,
+              changedById: actor.id,
+              comment: comment ?? `${target.appealNumber} bilan birlashtirildi (takroriy)`,
+            },
+          },
+        },
+      }),
+    ]);
+
+    await this.audit.log({
+      userId: actor.id,
+      action: 'APPEAL_MERGE',
+      entity: 'Appeal',
+      entityId: id,
+      newValue: { mergedInto: target.appealNumber, groupId },
+    });
+
+    if (appeal.citizenTelegramChatId) {
+      await this.notifications.notifyCitizenTelegram(
+        appeal.citizenTelegramChatId,
+        `ℹ️ <b>${appeal.appealNumber}</b> murojaatingiz avval yuborilgan <b>${target.appealNumber}</b> murojaat bilan birlashtirildi. Holatni o‘sha raqam orqali kuzatishingiz mumkin.`,
+      );
+    }
+    return this.findOne(target.id, actor);
   }
 
   /** AI javob loyihasini yaratish/yangilash */

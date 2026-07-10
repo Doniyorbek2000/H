@@ -13,7 +13,7 @@ Hokimliklar, davlat tashkilotlari va kommunal xizmatlar uchun **AI asosidagi mur
 - 🏆 **KPI** — xodimlar samaradorlik ball (formula asosida) va bo'limlar reytingi
 - 📄 **Hisobotlar** — kunlik/haftalik/oylik, AI xulosa, **PDF va Excel** eksport
 - 🔔 **Bildirishnomalar** — in-app + Telegram (xodimga vazifa, muddat eslatmasi, fuqaroga holat o'zgarishi)
-- 🤝 **Takroriy murojaatlar** — semantik o'xshashlik bo'yicha duplicate guruhlash
+- 🤝 **Takroriy murojaatlar** — yaratishda semantik o'xshashlik bo'yicha avto-aniqlash, operator tomonidan birlashtirish (`POST /appeals/:id/merge`), fuqaroga xabar
 - 🔐 **Xavfsizlik** — JWT access/refresh (rotation), rol asosidagi ruxsatlar, tashkilot doirasi (org scope), rate limit, helmet, fayl validatsiyasi, audit log
 - 📱 **Telegram bot** — fuqaro: murojaat yuborish/kuzatish/baholash; xodim: /hisobot, /bugun, /kechikkanlar
 
@@ -115,7 +115,7 @@ Key bo'lmasa tizim **fallback** rejimda ishlaydi: kalit so'z asosida kategoriya/
 2. `.env` da: `TELEGRAM_BOT_TOKEN=...` va `BOT_API_SECRET` (bot↔API ichki kaliti) ni kiriting
 3. `pnpm dev:bot` (yoki docker) — bot polling rejimida ishlaydi
 
-**Fuqaro:** /start → til → telefon → 📝 murojaat (kategoriya, matn, mahalla, lokatsiya) → raqam oladi → holat o'zgarishida xabar oladi → yakunda baholaydi.
+**Fuqaro:** /start → til → telefon → 📝 murojaat (kategoriya, matn, mahalla, lokatsiya, **rasm/video/hujjat** — 5 tagacha) → raqam oladi → holat o'zgarishida xabar oladi → yakunda baholaydi.
 **Xodim:** /login (email+parol, chatId bog'lanadi) → yangi vazifa/muddat xabarlari keladi → /hisobot, /bugun, /kechikkanlar.
 
 ## 📚 API hujjati

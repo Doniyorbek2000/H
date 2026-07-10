@@ -190,6 +190,18 @@ export class RateDto {
   feedback?: string;
 }
 
+export class MergeAppealDto {
+  @ApiProperty({ example: 'SM-20260709-0001', description: 'Asosiy (saqlanadigan) murojaat raqami' })
+  @IsString()
+  @IsNotEmpty()
+  targetAppealNumber: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  comment?: string;
+}
+
 export class TrackAppealDto {
   @ApiProperty({ example: 'SM-20260709-0001' })
   @IsString()

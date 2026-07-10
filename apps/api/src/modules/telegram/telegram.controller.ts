@@ -1,9 +1,21 @@
-import { Controller, Get, NotFoundException, Param, UseGuards } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
-import { AppealStatus, Role } from '@prisma/client';
+import {
+  BadRequestException,
+  Controller,
+  Get,
+  NotFoundException,
+  Param,
+  Post,
+  UploadedFiles,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
+import { ApiConsumes, ApiTags } from '@nestjs/swagger';
+import { Role } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { DashboardService } from '../dashboard/dashboard.service';
 import { AppealsService } from '../appeals/appeals.service';
+import { FilesService, multerOptions } from '../files/files.service';
 import { Public } from '../../common/decorators/public.decorator';
 import { BotSecretGuard } from './bot-secret.guard';
 import { AuthUser } from '../../common/decorators/current-user.decorator';
@@ -21,6 +33,7 @@ export class TelegramController {
     private readonly prisma: PrismaService,
     private readonly dashboard: DashboardService,
     private readonly appeals: AppealsService,
+    private readonly files: FilesService,
   ) {}
 
   private async staffByChatId(chatId: string) {
@@ -110,5 +123,16 @@ export class TelegramController {
   @Get('citizen/:chatId/appeals')
   citizenAppeals(@Param('chatId') chatId: string) {
     return this.appeals.findByTelegramChat(chatId);
+  }
+
+  /** Bot orqali kelgan murojaatga rasm/hujjat biriktirish */
+  @Post('appeals/:id/attachments')
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FilesInterceptor('files', 5, multerOptions()))
+  async attachFiles(@Param('id') id: string, @UploadedFiles() files: Express.Multer.File[]) {
+    const appeal = await this.prisma.appeal.findUnique({ where: { id }, select: { id: true } });
+    if (!appeal) throw new NotFoundException('Murojaat topilmadi');
+    if (!files?.length) throw new BadRequestException('Fayl yuborilmadi');
+    return this.files.attachToAppeal(id, files);
   }
 }
