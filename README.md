@@ -14,7 +14,8 @@ Hokimliklar, davlat tashkilotlari va kommunal xizmatlar uchun **AI asosidagi mur
 - 🌙 **Dark mode** — navbar'dagi tugma bilan almashinadi, tanlov saqlanadi, tizim temasiga mos default
 - 📱 **PWA / mobil** — portal to'liq responsive va PWA: telefonda "Bosh ekranga qo'shish" orqali ilova kabi o'rnatiladi (manifest, standalone rejim, ikonkalar)
 - 📄 **Hisobotlar** — kunlik/haftalik/oylik, AI xulosa, **PDF va Excel** eksport
-- 🔔 **Bildirishnomalar** — in-app + Telegram (xodimga vazifa, muddat eslatmasi, fuqaroga holat o'zgarishi)
+- 🔔 **Bildirishnomalar** — **real-time WebSocket (Socket.IO)** + in-app + Telegram (xodimga vazifa, muddat eslatmasi, fuqaroga holat o'zgarishi, shoshilinch murojaatda rahbarga darhol ogohlantirish)
+- 🧠 **AI Analytics** — sentiment taqsimoti, AI kategoriya aniqligi, kalit so'zlar buluti, dublikat guruhlar statistikasi (`/ai-analytics`)
 - 🤝 **Takroriy murojaatlar** — yaratishda semantik o'xshashlik bo'yicha avto-aniqlash, operator tomonidan birlashtirish (`POST /appeals/:id/merge`), fuqaroga xabar
 - 🔐 **Xavfsizlik** — JWT access/refresh (rotation), rol asosidagi ruxsatlar, tashkilot doirasi (org scope), rate limit, helmet, fayl validatsiyasi, audit log
 - 📱 **Telegram bot** — to'liq **o'zbek/rus** tillarida; fuqaro: murojaat yuborish/kuzatish/baholash; xodim: /hisobot, /bugun, /kechikkanlar
@@ -118,7 +119,8 @@ Key bo'lmasa tizim **fallback** rejimda ishlaydi: kalit so'z asosida kategoriya/
 2. `.env` da: `TELEGRAM_BOT_TOKEN=...` va `BOT_API_SECRET` (bot↔API ichki kaliti) ni kiriting
 3. `pnpm dev:bot` (yoki docker) — bot polling rejimida ishlaydi
 
-**Fuqaro:** /start → til → telefon → 📝 murojaat (kategoriya, matn, mahalla, lokatsiya, **rasm/video/hujjat** — 5 tagacha) → raqam oladi → holat o'zgarishida xabar oladi → yakunda baholaydi.
+**Fuqaro:** /start → til → telefon → 📝 murojaat (kategoriya, matn, mahalla, lokatsiya, **rasm/video/hujjat** — 5 tagacha) → raqam oladi → holat o'zgarishida xabar oladi → yakunda baholaydi. **🤖 AI yordamchi** bilan suhbat (/savol).
+**Xodim (qo'shimcha):** yangi murojaat xabarida **✅ Tasdiqlash / ❌ Rad etish** inline tugmalari.
 **Xodim:** /login (email+parol, chatId bog'lanadi) → yangi vazifa/muddat xabarlari keladi → /hisobot, /bugun, /kechikkanlar.
 
 ## 📚 API hujjati

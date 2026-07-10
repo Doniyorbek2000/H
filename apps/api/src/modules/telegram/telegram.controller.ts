@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  Body,
   Controller,
   Get,
   NotFoundException,
@@ -15,6 +16,7 @@ import { Role } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { DashboardService } from '../dashboard/dashboard.service';
 import { AppealsService } from '../appeals/appeals.service';
+import { AiService } from '../ai/ai.service';
 import { FilesService, multerOptions } from '../files/files.service';
 import { Public } from '../../common/decorators/public.decorator';
 import { BotSecretGuard } from './bot-secret.guard';
@@ -34,6 +36,7 @@ export class TelegramController {
     private readonly dashboard: DashboardService,
     private readonly appeals: AppealsService,
     private readonly files: FilesService,
+    private readonly ai: AiService,
   ) {}
 
   private async staffByChatId(chatId: string) {
@@ -123,6 +126,46 @@ export class TelegramController {
   @Get('citizen/:chatId/appeals')
   citizenAppeals(@Param('chatId') chatId: string) {
     return this.appeals.findByTelegramChat(chatId);
+  }
+
+  /** AI bilan suhbat (fuqaro savollari) */
+  @Post('ai-chat')
+  async aiChat(@Body() body: { question: string; lang?: 'uz' | 'ru' }) {
+    if (!body?.question?.trim()) throw new BadRequestException('Savol bo‘sh');
+    const answer = await this.ai.chat(body.question.slice(0, 1000), body.lang ?? 'uz');
+    return { answer };
+  }
+
+  /** Botdagi inline tugmalar: xodim murojaatni tasdiqlaydi yoki rad etadi */
+  @Post('appeals/:id/bot-action')
+  async botAction(
+    @Param('id') id: string,
+    @Body() body: { chatId: string; action: 'approve' | 'reject'; reason?: string },
+  ) {
+    const staff = await this.staffByChatId(body.chatId);
+    const actor: AuthUser = {
+      id: staff.id,
+      email: staff.email,
+      role: staff.role,
+      organizationId: staff.organizationId,
+      departmentId: staff.departmentId,
+      fullName: staff.fullName,
+    };
+    if (body.action === 'reject') {
+      const appeal = await this.appeals.reject(
+        id,
+        { reason: body.reason ?? `Telegram orqali rad etildi (${staff.fullName})` },
+        actor,
+      );
+      return { success: true, status: appeal.status };
+    }
+    // approve: ko'rib chiqishga qabul qilinganini tasdiqlash (izoh + audit)
+    await this.appeals.addComment(
+      id,
+      { message: `✅ ${staff.fullName} Telegram orqali ko‘rib chiqishga tasdiqladi`, isInternal: true },
+      actor,
+    );
+    return { success: true, status: 'APPROVED' };
   }
 
   /** Bot orqali kelgan murojaatga rasm/hujjat biriktirish */

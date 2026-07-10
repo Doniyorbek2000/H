@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   Bell,
+  Bot,
   Building2,
   FileBarChart,
   FileText,
@@ -20,16 +21,18 @@ import {
   Trophy,
   Users,
 } from 'lucide-react';
+import { io, Socket } from 'socket.io-client';
 import { RequireAuth, useAuth } from '@/lib/auth';
-import { api } from '@/lib/api';
+import { api, API_URL, getAccessToken } from '@/lib/api';
 import { ROLE_LABELS_UZ } from '@/lib/labels';
-import { cn, ThemeToggle } from '@/components/ui';
+import { cn, ThemeToggle, useToast } from '@/components/ui';
 
 const NAV = [
   { href: '/dashboard', label: 'Boshqaruv paneli', icon: LayoutDashboard, roles: null },
   { href: '/appeals', label: 'Murojaatlar', icon: ListChecks, roles: null },
   { href: '/map', label: 'Xarita', icon: Map, roles: null },
   { href: '/kpi', label: 'KPI reyting', icon: Trophy, roles: null },
+  { href: '/ai-analytics', label: 'AI Analytics', icon: Bot, roles: ['SUPER_ADMIN', 'ADMIN', 'LEADER', 'MANAGER', 'OPERATOR'] },
   { href: '/reports', label: 'Hisobotlar', icon: FileBarChart, roles: ['SUPER_ADMIN', 'ADMIN', 'LEADER', 'MANAGER'] },
   { href: '/users', label: 'Xodimlar', icon: Users, roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'OPERATOR', 'LEADER'] },
   { href: '/departments', label: 'Bo‘limlar', icon: Building2, roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'OPERATOR', 'LEADER'] },
@@ -107,10 +110,28 @@ function Topbar({ onMenu }: { onMenu: () => void }) {
       .catch(() => {});
   };
 
+  const { toast } = useToast();
+
   useEffect(() => {
     loadNotifs();
-    const t = setInterval(loadNotifs, 30000);
-    return () => clearInterval(t);
+    // Zaxira polling (WS uzilgan holatlar uchun)
+    const t = setInterval(loadNotifs, 60000);
+
+    // Real-time bildirishnomalar (Socket.IO)
+    let socket: Socket | null = null;
+    const token = getAccessToken();
+    if (token) {
+      socket = io(API_URL, { auth: { token }, transports: ['websocket', 'polling'] });
+      socket.on('notification', (n: { title: string; message: string }) => {
+        loadNotifs();
+        toast(`🔔 ${n.title}`, 'info');
+      });
+    }
+    return () => {
+      clearInterval(t);
+      socket?.disconnect();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

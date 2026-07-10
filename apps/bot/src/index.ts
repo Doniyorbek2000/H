@@ -26,6 +26,7 @@ type Step =
   | 'media'
   | 'confirm'
   | 'track'
+  | 'ai_chat'
   | 'login_email'
   | 'login_password'
   | 'rate';
@@ -64,6 +65,8 @@ function mainMenu(lang: Lang) {
     .text(t(lang, 'menuMy'))
     .row()
     .text(t(lang, 'menuTrack'))
+    .text(t(lang, 'menuAi'))
+    .row()
     .text(t(lang, 'menuHelp'))
     .resized()
     .persistent();
@@ -200,6 +203,42 @@ async function myAppeals(ctx: any) {
 }
 bot.command('my_appeals', myAppeals);
 bot.hears(menuVariants('menuMy'), myAppeals);
+
+// ============ AI suhbat ============
+
+async function startAiChat(ctx: any) {
+  const s = getSession(String(ctx.chat.id));
+  s.step = 'ai_chat';
+  await ctx.reply(t(s.lang, 'askAiQuestion'));
+}
+bot.command('savol', startAiChat);
+bot.hears(menuVariants('menuAi'), startAiChat);
+
+// ============ Xodim: tasdiqlash/rad etish (inline tugmalar) ============
+
+bot.callbackQuery(/^(apr|rej):(.+)$/, async (ctx) => {
+  const s = getSession(String(ctx.chat!.id));
+  const [, action, appealId] = ctx.match;
+  await ctx.answerCallbackQuery();
+  try {
+    await apiCall(`/telegram/appeals/${appealId}/bot-action`, {
+      method: 'POST',
+      botAuth: true,
+      body: {
+        chatId: String(ctx.chat!.id),
+        action: action === 'apr' ? 'approve' : 'reject',
+      },
+    });
+    await ctx.reply(t(s.lang, action === 'apr' ? 'actionApproved' : 'actionRejected'));
+    try {
+      await ctx.editMessageReplyMarkup({ reply_markup: undefined });
+    } catch {
+      /* ignore */
+    }
+  } catch (e) {
+    await ctx.reply(e instanceof ApiError ? `❌ ${e.message}` : t(s.lang, 'actionError'));
+  }
+});
 
 bot.command('help', async (ctx) => {
   const s = getSession(String(ctx.chat.id));
@@ -520,6 +559,21 @@ bot.on('message:text', async (ctx) => {
         await confirmAppeal(ctx, s);
       }
       break;
+    case 'ai_chat': {
+      s.step = 'idle';
+      const thinking = await ctx.reply(t(s.lang, 'aiThinking'));
+      try {
+        const res = await apiCall<{ answer: string }>('/telegram/ai-chat', {
+          method: 'POST',
+          botAuth: true,
+          body: { question: text, lang: s.lang },
+        });
+        await ctx.api.editMessageText(ctx.chat.id, thinking.message_id, `🤖 ${res.answer}`);
+      } catch {
+        await ctx.api.editMessageText(ctx.chat.id, thinking.message_id, t(s.lang, 'aiError'));
+      }
+      break;
+    }
     case 'track':
       s.step = 'idle';
       try {
@@ -590,6 +644,7 @@ bot.api
     { command: 'new_appeal', description: 'Yangi murojaat / Новое обращение' },
     { command: 'my_appeals', description: 'Mening murojaatlarim / Мои обращения' },
     { command: 'status', description: 'Holat tekshirish / Проверить статус' },
+    { command: 'savol', description: 'AI yordamchiga savol / Вопрос ИИ' },
     { command: 'lang', description: 'Tilni o‘zgartirish / Сменить язык' },
     { command: 'help', description: 'Yordam / Помощь' },
     { command: 'login', description: 'Xodim akkauntini bog‘lash / Привязать аккаунт' },

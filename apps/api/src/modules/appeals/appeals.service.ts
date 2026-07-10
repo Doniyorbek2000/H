@@ -214,7 +214,7 @@ export class AppealsService {
       newValue: { appealNumber, title: dto.title, source: appeal.source },
     });
 
-    // Operatorlarga xabar
+    // Operatorlarga xabar (Telegramda tasdiqlash/rad etish tugmalari bilan)
     await this.notifications.notifyRole({
       organizationId,
       roles: [Role.OPERATOR, Role.ADMIN],
@@ -222,6 +222,12 @@ export class AppealsService {
       message: `${appealNumber}: ${dto.title}`,
       type: NotificationType.APPEAL_CREATED,
       meta: { appealId: appeal.id },
+      telegramButtons: [
+        [
+          { text: '✅ Tasdiqlash', callback_data: `apr:${appeal.id}` },
+          { text: '❌ Rad etish', callback_data: `rej:${appeal.id}` },
+        ],
+      ],
     });
 
     // AI tahlilni navbatga qo'yamiz
@@ -311,6 +317,18 @@ export class AppealsService {
       type: NotificationType.AI_READY,
       meta: { appealId },
     });
+
+    // Shoshilinch murojaat — rahbarlarni darhol ogohlantirish
+    if (result.priority === 'URGENT') {
+      await this.notifications.notifyRole({
+        organizationId: appeal.organizationId,
+        roles: [Role.LEADER, Role.MANAGER],
+        title: '🚨 Shoshilinch murojaat!',
+        message: `${appeal.appealNumber}: ${appeal.title} (${result.category})`,
+        type: NotificationType.OVERDUE_ALERT,
+        meta: { appealId },
+      });
+    }
 
     this.logger.log(`AI tahlil yakunlandi: ${appeal.appealNumber} (${result.engine})`);
   }

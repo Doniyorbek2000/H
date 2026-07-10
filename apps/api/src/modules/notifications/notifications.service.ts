@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { NotificationType, Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TelegramSenderService } from './telegram-sender.service';
+import { NotificationsGateway } from './notifications.gateway';
 import { PaginationQueryDto, paginate } from '../../common/dto/pagination.dto';
 
 interface NotifyInput {
@@ -11,6 +12,8 @@ interface NotifyInput {
   type?: NotificationType;
   meta?: Record<string, unknown>;
   sendTelegram?: boolean;
+  /** Telegram xabariga inline tugmalar (masalan tasdiqlash/rad etish) */
+  telegramButtons?: { text: string; callback_data: string }[][];
 }
 
 @Injectable()
@@ -20,6 +23,7 @@ export class NotificationsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly telegram: TelegramSenderService,
+    private readonly gateway: NotificationsGateway,
   ) {}
 
   /** Bitta foydalanuvchiga in-app (+ ixtiyoriy Telegram) notification */
@@ -34,6 +38,13 @@ export class NotificationsService {
           meta: (input.meta as Prisma.InputJsonValue) ?? Prisma.JsonNull,
         },
       });
+      // Real-time (WebSocket) push
+      this.gateway.emitToUser(input.userId, {
+        title: input.title,
+        message: input.message,
+        type: input.type ?? NotificationType.SYSTEM,
+        meta: input.meta,
+      });
       if (input.sendTelegram !== false) {
         const user = await this.prisma.user.findUnique({
           where: { id: input.userId },
@@ -43,6 +54,7 @@ export class NotificationsService {
           await this.telegram.sendMessage(
             user.telegramChatId,
             `<b>${input.title}</b>\n${input.message}`,
+            input.telegramButtons,
           );
         }
       }
@@ -60,6 +72,7 @@ export class NotificationsService {
     message: string;
     type?: NotificationType;
     meta?: Record<string, unknown>;
+    telegramButtons?: { text: string; callback_data: string }[][];
   }) {
     const users = await this.prisma.user.findMany({
       where: {
@@ -78,6 +91,7 @@ export class NotificationsService {
           message: params.message,
           type: params.type,
           meta: params.meta,
+          telegramButtons: params.telegramButtons,
         }),
       ),
     );

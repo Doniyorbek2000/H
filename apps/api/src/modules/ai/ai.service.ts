@@ -222,6 +222,19 @@ export class AiService {
     ].join(' ');
   }
 
+  /** Fuqaro/xodim bilan AI suhbat (bot uchun, bitta savol-javob) */
+  async chat(question: string, lang: 'uz' | 'ru' = 'uz'): Promise<string> {
+    const prompt =
+      lang === 'ru'
+        ? `Вы — вежливый ИИ-помощник платформы обращений граждан в хокимият. Кратко (3-6 предложений) и по делу ответьте на вопрос гражданина о коммунальных услугах, обращениях и госуслугах. Если вопрос не по теме, вежливо направьте к отправке обращения. Вопрос: ${question}`
+        : `Siz hokimlik murojaatlar platformasining muloyim AI yordamchisisiz. Fuqaroning kommunal xizmatlar, murojaatlar va davlat xizmatlari haqidagi savoliga qisqa (3-6 gap) va aniq javob bering. Savol mavzuga oid bo'lmasa, muloyimlik bilan murojaat yuborishga yo'naltiring. Savol: ${question}`;
+    const raw = await this.callGemini(prompt);
+    if (raw) return raw.trim();
+    return lang === 'ru'
+      ? 'ИИ-помощник временно недоступен. Вы можете отправить обращение через меню «📝 Новое обращение», и оно будет рассмотрено ответственным отделом.'
+      : 'AI yordamchi hozircha mavjud emas. "📝 Yangi murojaat" tugmasi orqali murojaat yuborishingiz mumkin — u mas’ul bo‘lim tomonidan ko‘rib chiqiladi.';
+  }
+
   /** Takroriy murojaatlarni aniqlash uchun matnni normallashtirish */
   normalizeForDuplicate(text: string): string {
     return text

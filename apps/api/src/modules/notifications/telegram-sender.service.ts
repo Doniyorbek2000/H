@@ -17,13 +17,22 @@ export class TelegramSenderService {
     return Boolean(this.token);
   }
 
-  async sendMessage(chatId: string, text: string): Promise<boolean> {
+  async sendMessage(
+    chatId: string,
+    text: string,
+    inlineButtons?: { text: string; callback_data: string }[][],
+  ): Promise<boolean> {
     if (!this.token || !chatId) return false;
     try {
       const res = await fetch(`https://api.telegram.org/bot${this.token}/sendMessage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML' }),
+        body: JSON.stringify({
+          chat_id: chatId,
+          text,
+          parse_mode: 'HTML',
+          ...(inlineButtons ? { reply_markup: { inline_keyboard: inlineButtons } } : {}),
+        }),
       });
       if (!res.ok) {
         this.logger.warn(`Telegram sendMessage xatosi: ${res.status}`);

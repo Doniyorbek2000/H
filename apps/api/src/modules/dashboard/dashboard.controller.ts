@@ -49,4 +49,9 @@ export class DashboardController {
   mapData(@CurrentUser() user: AuthUser) {
     return this.service.mapData(user);
   }
+
+  @Get('ai-analytics')
+  aiAnalytics(@CurrentUser() user: AuthUser) {
+    return this.service.aiAnalytics(user);
+  }
 }

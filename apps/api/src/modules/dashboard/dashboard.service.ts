@@ -291,6 +291,61 @@ export class DashboardService {
     return { users, departments: deps };
   }
 
+  /** AI Analytics: sentiment, kalit so'zlar, AI aniqlik, dublikatlar */
+  async aiAnalytics(actor: AuthUser) {
+    const scope = this.orgScope(actor);
+    const appeals = await this.prisma.appeal.findMany({
+      where: { ...scope, aiSummary: { not: null } },
+      select: {
+        aiSentiment: true,
+        aiKeywords: true,
+        aiCategorySuggestion: true,
+        aiMissingInfo: true,
+        duplicateGroupId: true,
+        category: { select: { name: true } },
+      },
+      take: 2000,
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const sentiment = new Map<string, number>();
+    const keywords = new Map<string, number>();
+    let categoryMatch = 0;
+    let categoryTotal = 0;
+    let withMissingInfo = 0;
+    const duplicateGroups = new Set<string>();
+
+    for (const a of appeals) {
+      const s = a.aiSentiment ?? 'neutral';
+      sentiment.set(s, (sentiment.get(s) ?? 0) + 1);
+      for (const k of a.aiKeywords ?? []) {
+        const key = k.toLowerCase().trim();
+        if (key.length > 2) keywords.set(key, (keywords.get(key) ?? 0) + 1);
+      }
+      if (a.aiCategorySuggestion && a.category?.name) {
+        categoryTotal++;
+        if (a.aiCategorySuggestion.toLowerCase() === a.category.name.toLowerCase()) categoryMatch++;
+      }
+      if ((a.aiMissingInfo ?? []).length > 0) withMissingInfo++;
+      if (a.duplicateGroupId) duplicateGroups.add(a.duplicateGroupId);
+    }
+
+    return {
+      analyzedTotal: appeals.length,
+      sentiment: Array.from(sentiment.entries()).map(([name, count]) => ({ name, count })),
+      topKeywords: Array.from(keywords.entries())
+        .map(([keyword, count]) => ({ keyword, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 15),
+      categoryAccuracy: categoryTotal
+        ? Math.round((categoryMatch / categoryTotal) * 1000) / 10
+        : null,
+      withMissingInfo,
+      duplicateGroups: duplicateGroups.size,
+      aiEnabled: Boolean(process.env.GEMINI_API_KEY),
+    };
+  }
+
   /** Xaritada ko'rsatish uchun koordinatali murojaatlar */
   async mapData(actor: AuthUser) {
     const scope = this.orgScope(actor);
