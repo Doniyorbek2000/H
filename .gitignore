@@ -12,3 +12,4 @@ storage/
 .DS_Store
 .turbo/
 *.tsbuildinfo
+dump.rdb
