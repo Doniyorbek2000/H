@@ -142,12 +142,12 @@ function AppealsInner() {
             ))}
           </Select>
         </div>
-        <label className="mt-3 flex w-fit cursor-pointer items-center gap-2 text-sm text-slate-600">
+        <label className="mt-3 flex w-fit cursor-pointer items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
           <input
             type="checkbox"
             checked={overdue}
             onChange={(e) => { setOverdue(e.target.checked); setPage(1); }}
-            className="h-4 w-4 rounded border-slate-300"
+            className="h-4 w-4 rounded border-slate-300 dark:border-slate-600"
           />
           Faqat kechikayotganlar
         </label>
@@ -163,7 +163,7 @@ function AppealsInner() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-500">
+                <tr className="border-b border-slate-200 dark:border-slate-700 text-left text-xs uppercase text-slate-500">
                   <th className="px-4 py-3">Raqam</th>
                   <th className="px-4 py-3">Mavzu</th>
                   <th className="px-4 py-3">Kategoriya</th>
@@ -178,7 +178,7 @@ function AppealsInner() {
                 {data.data.map((a: any) => (
                   <tr
                     key={a.id}
-                    className="cursor-pointer border-b border-slate-100 hover:bg-slate-50"
+                    className="cursor-pointer border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/60"
                     onClick={() => router.push(`/appeals/${a.id}`)}
                   >
                     <td className="px-4 py-3 font-mono text-xs">{a.appealNumber}</td>

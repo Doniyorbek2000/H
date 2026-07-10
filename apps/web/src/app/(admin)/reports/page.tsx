@@ -60,11 +60,11 @@ export default function ReportsPage() {
           <EmptyState message="Hisobotlar hali yaratilmagan. Yuqoridagi tugmalar orqali yarating." />
         )}
         {data?.data.length > 0 && (
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-slate-100 dark:divide-slate-800">
             {data.data.map((r: any) => (
-              <div key={r.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 hover:bg-slate-50">
+              <div key={r.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/60">
                 <button className="flex min-w-0 items-center gap-3 text-left" onClick={() => setSelected(r)}>
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-600">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-50 dark:bg-primary-900/30 text-primary-600">
                     <FileBarChart size={18} />
                   </div>
                   <div className="min-w-0">
@@ -75,7 +75,7 @@ export default function ReportsPage() {
                   </div>
                 </button>
                 <div className="flex items-center gap-2">
-                  <Badge className="border-primary-200 bg-primary-50 text-primary-700">{TYPE_LABELS[r.type]}</Badge>
+                  <Badge className="border-primary-200 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300">{TYPE_LABELS[r.type]}</Badge>
                   <Button size="sm" variant="secondary" onClick={() => apiDownload(`/reports/${r.id}/download?format=pdf`, `hisobot-${r.id.slice(0, 8)}.pdf`).catch((e) => toast(e.message, 'error'))}>
                     <Download size={14} /> PDF
                   </Button>
@@ -99,7 +99,7 @@ export default function ReportsPage() {
                 ['Kechikkan', selected.content.overdue],
                 ['Bajarilish %', `${selected.content.completionRate}%`],
               ].map(([k, v]) => (
-                <div key={k as string} className="rounded-lg bg-slate-50 p-3 text-center">
+                <div key={k as string} className="rounded-lg bg-slate-50 dark:bg-slate-800/60 p-3 text-center">
                   <div className="text-xl font-bold">{v as any}</div>
                   <div className="text-xs text-slate-500">{k as string}</div>
                 </div>
@@ -109,7 +109,7 @@ export default function ReportsPage() {
               <div>
                 <h4 className="mb-2 font-semibold">Eng ko‘p yo‘nalishlar</h4>
                 {selected.content.topCategories.map((c: any, i: number) => (
-                  <div key={i} className="flex justify-between border-b border-slate-100 py-1.5">
+                  <div key={i} className="flex justify-between border-b border-slate-100 dark:border-slate-800 py-1.5">
                     <span>{c.name}</span>
                     <span className="font-medium">{c.count} ta</span>
                   </div>
@@ -117,11 +117,11 @@ export default function ReportsPage() {
               </div>
             )}
             {selected.aiSummary && (
-              <div className="rounded-lg border border-violet-200 bg-violet-50 p-4">
-                <h4 className="mb-2 flex items-center gap-1.5 font-semibold text-violet-900">
+              <div className="rounded-lg border border-violet-200 dark:border-violet-900 bg-violet-50 p-4">
+                <h4 className="mb-2 flex items-center gap-1.5 font-semibold text-violet-900 dark:text-violet-200">
                   <Bot size={15} /> AI xulosasi
                 </h4>
-                <p className="whitespace-pre-wrap leading-relaxed text-slate-700">{selected.aiSummary}</p>
+                <p className="whitespace-pre-wrap leading-relaxed text-slate-700 dark:text-slate-200">{selected.aiSummary}</p>
               </div>
             )}
           </div>

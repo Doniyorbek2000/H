@@ -114,7 +114,7 @@ export default function DashboardPage() {
         <StatCard title="Bugungi murojaatlar" value={overview.today} icon={TrendingUp} color="bg-cyan-100 text-cyan-700" />
         <StatCard title="Jarayonda" value={overview.inProgress} icon={Clock} color="bg-yellow-100 text-yellow-700" href="/appeals?status=IN_PROGRESS" />
         <StatCard title="Bajarilgan" value={overview.completed} icon={CheckCircle2} color="bg-green-100 text-green-700" href="/appeals?status=COMPLETED" />
-        <StatCard title="Kechikayotgan" value={overview.overdue} icon={AlertTriangle} color="bg-red-100 text-red-700" href="/appeals?overdue=true" />
+        <StatCard title="Kechikayotgan" value={overview.overdue} icon={AlertTriangle} color="bg-red-100 text-red-700 dark:text-red-300" href="/appeals?overdue=true" />
         <StatCard title="Shoshilinch" value={overview.urgent} icon={Siren} color="bg-rose-100 text-rose-700" href="/appeals?priority=URGENT" />
         <StatCard title="Operator ko‘rigida" value={overview.operatorReview} icon={Bot} color="bg-violet-100 text-violet-700" href="/appeals?status=OPERATOR_REVIEW" />
         <StatCard title="O‘rtacha baho" value={overview.avgRating ?? '—'} icon={Star} color="bg-amber-100 text-amber-700" />
@@ -188,7 +188,7 @@ export default function DashboardPage() {
               {byMahalla.map((m, i) => (
                 <div key={i} className="flex items-center gap-3">
                   <span className="w-40 truncate text-sm">{m.mahalla}</span>
-                  <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-slate-100">
+                  <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
                     <div
                       className="h-full rounded-full bg-primary-500"
                       style={{ width: `${(m.count / byMahalla[0].count) * 100}%` }}
@@ -202,9 +202,9 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      <Card className="border-violet-200">
-        <div className="flex items-center justify-between border-b border-violet-100 bg-violet-50/50 px-4 py-3">
-          <h3 className="flex items-center gap-1.5 text-sm font-semibold text-violet-900">
+      <Card className="border-violet-200 dark:border-violet-900">
+        <div className="flex items-center justify-between border-b border-violet-100 dark:border-violet-900/60 bg-violet-50/50 dark:bg-violet-950/30 px-4 py-3">
+          <h3 className="flex items-center gap-1.5 text-sm font-semibold text-violet-900 dark:text-violet-200">
             <Bot size={16} /> AI tavsiyalari — operator ko‘rigini kutmoqda
           </h3>
           <Link
@@ -219,12 +219,12 @@ export default function DashboardPage() {
             AI ko‘rigini kutayotgan murojaatlar yo‘q ✅
           </p>
         ) : (
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-slate-100 dark:divide-slate-800">
             {aiQueue.map((a) => (
               <Link
                 key={a.id}
                 href={`/appeals/${a.id}`}
-                className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-violet-50/40"
+                className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-violet-50/40 dark:hover:bg-violet-950/30"
               >
                 <div className="min-w-0">
                   <div className="truncate text-sm font-medium">
@@ -239,8 +239,8 @@ export default function DashboardPage() {
                 <Badge
                   className={
                     a.aiPrioritySuggestion === 'URGENT' || a.priority === 'URGENT'
-                      ? 'border-red-200 bg-red-100 text-red-800'
-                      : 'border-violet-200 bg-violet-50 text-violet-700'
+                      ? 'border-red-200 dark:border-red-900 bg-red-100 text-red-800'
+                      : 'border-violet-200 dark:border-violet-900 bg-violet-50 text-violet-700'
                   }
                 >
                   {a.aiPrioritySuggestion ?? a.priority}
@@ -252,8 +252,8 @@ export default function DashboardPage() {
       </Card>
 
       <Card>
-        <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
-          <h3 className="text-sm font-semibold text-red-700">⚠️ Kechikayotgan murojaatlar</h3>
+        <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700 px-4 py-3">
+          <h3 className="text-sm font-semibold text-red-700 dark:text-red-300">⚠️ Kechikayotgan murojaatlar</h3>
           <Link href="/appeals?overdue=true" className="text-xs text-primary-600 hover:underline">
             Hammasini ko‘rish →
           </Link>
@@ -261,12 +261,12 @@ export default function DashboardPage() {
         {overdue.length === 0 ? (
           <p className="p-6 text-center text-sm text-slate-400">Kechikayotgan murojaatlar yo‘q 🎉</p>
         ) : (
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-slate-100 dark:divide-slate-800">
             {overdue.map((a) => (
               <Link
                 key={a.id}
                 href={`/appeals/${a.id}`}
-                className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-slate-50"
+                className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/60"
               >
                 <div className="min-w-0">
                   <div className="truncate text-sm font-medium">

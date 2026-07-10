@@ -52,21 +52,21 @@ export default function SettingsPage() {
           <Bot size={16} className="text-violet-600" /> Tizim integratsiyalari
         </h3>
         <div className="space-y-3 text-sm">
-          <div className="flex items-center justify-between rounded-lg bg-slate-50 p-3">
+          <div className="flex items-center justify-between rounded-lg bg-slate-50 dark:bg-slate-800/60 p-3">
             <div>
               <div className="font-medium">Gemini AI</div>
               <div className="text-xs text-slate-500">Model: {data.system.aiModel}</div>
             </div>
-            <Badge className={data.system.aiEnabled ? 'border-green-200 bg-green-50 text-green-700' : 'border-amber-200 bg-amber-50 text-amber-700'}>
+            <Badge className={data.system.aiEnabled ? 'border-green-200 bg-green-50 text-green-700' : 'border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/40 text-amber-700'}>
               {data.system.aiEnabled ? 'Ulangan' : 'API key yo‘q — fallback rejim'}
             </Badge>
           </div>
-          <div className="flex items-center justify-between rounded-lg bg-slate-50 p-3">
+          <div className="flex items-center justify-between rounded-lg bg-slate-50 dark:bg-slate-800/60 p-3">
             <div>
               <div className="font-medium">Telegram bot</div>
               <div className="text-xs text-slate-500">Xabarnomalar va fuqaro murojaatlari</div>
             </div>
-            <Badge className={data.system.telegramEnabled ? 'border-green-200 bg-green-50 text-green-700' : 'border-amber-200 bg-amber-50 text-amber-700'}>
+            <Badge className={data.system.telegramEnabled ? 'border-green-200 bg-green-50 text-green-700' : 'border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/40 text-amber-700'}>
               {data.system.telegramEnabled ? 'Ulangan' : 'Token sozlanmagan'}
             </Badge>
           </div>
