@@ -5,17 +5,21 @@ import { useRouter } from 'next/navigation';
 import 'leaflet/dist/leaflet.css';
 import { api } from '@/lib/api';
 import { STATUS_HEX, STATUS_LABELS_UZ, PRIORITY_LABELS_UZ } from '@/lib/labels';
-import { Card, ErrorState, Select, Skeleton } from '@/components/ui';
+import { Button, Card, ErrorState, Select, Skeleton } from '@/components/ui';
+
+const PRIORITY_WEIGHT: Record<string, number> = { LOW: 0.4, MEDIUM: 0.6, HIGH: 0.85, URGENT: 1 };
 
 export default function MapPage() {
   const router = useRouter();
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
+  const heatRef = useRef<any>(null);
   const [appeals, setAppeals] = useState<any[]>([]);
   const [mahallas, setMahallas] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState('');
   const [mahallaFilter, setMahallaFilter] = useState('');
+  const [mode, setMode] = useState<'markers' | 'heatmap'>('markers');
   const [error, setError] = useState('');
   const [ready, setReady] = useState(false);
 
@@ -54,16 +58,41 @@ export default function MapPage() {
     if (!ready || !mapInstance.current) return;
     (async () => {
       const L = (await import('leaflet')).default;
+      // @ts-ignore — leaflet.heat plugin tipi yo'q, L.heatLayer ni qo'shadi
+      await import('leaflet.heat');
       const map = mapInstance.current;
       markersRef.current.forEach((m) => map.removeLayer(m));
       markersRef.current = [];
+      if (heatRef.current) {
+        map.removeLayer(heatRef.current);
+        heatRef.current = null;
+      }
 
       const filtered = appeals.filter(
         (a) =>
           (!statusFilter || a.status === statusFilter) &&
           (!mahallaFilter || a.mahalla === mahallaFilter),
       );
-      const bounds: [number, number][] = [];
+      const bounds: [number, number][] = filtered.map((a) => [a.latitude, a.longitude]);
+
+      if (mode === 'heatmap') {
+        const points = filtered.map((a) => [
+          a.latitude,
+          a.longitude,
+          PRIORITY_WEIGHT[a.priority] ?? 0.6,
+        ]);
+        heatRef.current = (L as any)
+          .heatLayer(points, {
+            radius: 32,
+            blur: 22,
+            maxZoom: 15,
+            gradient: { 0.3: '#3b82f6', 0.55: '#eab308', 0.8: '#f97316', 1: '#ef4444' },
+          })
+          .addTo(map);
+        if (bounds.length > 0) map.fitBounds(bounds, { padding: [30, 30], maxZoom: 14 });
+        return;
+      }
+
       filtered.forEach((a) => {
         const color = STATUS_HEX[a.status] ?? '#64748b';
         const marker = L.circleMarker([a.latitude, a.longitude], {
@@ -83,11 +112,10 @@ export default function MapPage() {
           </div>`,
         );
         markersRef.current.push(marker);
-        bounds.push([a.latitude, a.longitude]);
       });
       if (bounds.length > 0) map.fitBounds(bounds, { padding: [30, 30], maxZoom: 14 });
     })();
-  }, [ready, appeals, statusFilter, mahallaFilter, router]);
+  }, [ready, appeals, statusFilter, mahallaFilter, mode, router]);
 
   return (
     <div className="space-y-4">
@@ -99,6 +127,22 @@ export default function MapPage() {
       {error && <ErrorState message={error} />}
 
       <Card className="p-4">
+        <div className="mb-3 flex gap-2">
+          <Button
+            size="sm"
+            variant={mode === 'markers' ? 'primary' : 'secondary'}
+            onClick={() => setMode('markers')}
+          >
+            📍 Nuqtalar
+          </Button>
+          <Button
+            size="sm"
+            variant={mode === 'heatmap' ? 'primary' : 'secondary'}
+            onClick={() => setMode('heatmap')}
+          >
+            🔥 Heatmap
+          </Button>
+        </div>
         <div className="grid gap-3 sm:grid-cols-2 lg:max-w-xl">
           <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
             <option value="">Barcha holatlar</option>

@@ -20,6 +20,7 @@ import {
   CloseDto,
   CommentDto,
   CreateAppealDto,
+  MergeAppealDto,
   RateDto,
   RejectDto,
   UpdateAppealDto,
@@ -197,6 +198,14 @@ export class AppealsController {
   @ApiBearerAuth()
   rate(@Param('id') id: string, @Body() dto: RateDto, @CurrentUser() user: AuthUser) {
     return this.service.rate(id, dto, user);
+  }
+
+  @Post(':id/merge')
+  @ApiBearerAuth()
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.OPERATOR, Role.MANAGER)
+  @ApiOperation({ summary: 'Takroriy murojaatni asosiy murojaatga birlashtirish' })
+  merge(@Param('id') id: string, @Body() dto: MergeAppealDto, @CurrentUser() user: AuthUser) {
+    return this.service.merge(id, dto.targetAppealNumber, dto.comment, user);
   }
 
   @Post(':id/response-draft')

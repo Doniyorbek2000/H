@@ -33,6 +33,7 @@ const NAV = [
   { href: '/reports', label: 'Hisobotlar', icon: FileBarChart, roles: ['SUPER_ADMIN', 'ADMIN', 'LEADER', 'MANAGER'] },
   { href: '/users', label: 'Xodimlar', icon: Users, roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'OPERATOR', 'LEADER'] },
   { href: '/departments', label: 'Bo‘limlar', icon: Building2, roles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'OPERATOR', 'LEADER'] },
+  { href: '/organizations', label: 'Tashkilotlar', icon: Landmark, roles: ['SUPER_ADMIN'] },
   { href: '/categories', label: 'Kategoriyalar', icon: FolderKanban, roles: ['SUPER_ADMIN', 'ADMIN'] },
   { href: '/audit', label: 'Audit jurnal', icon: ScrollText, roles: ['SUPER_ADMIN', 'ADMIN', 'LEADER'] },
   { href: '/settings', label: 'Sozlamalar', icon: Settings, roles: ['SUPER_ADMIN', 'ADMIN', 'LEADER'] },

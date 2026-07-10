@@ -230,6 +230,17 @@ export class AppealsService {
     return appeal;
   }
 
+  /** Tashkilot (yoki global) 'deadline.default' sozlamasi, bo'lmasa 72 soat */
+  private async getDefaultDeadlineHours(organizationId: string): Promise<number> {
+    const settings = await this.prisma.setting.findMany({
+      where: { key: 'deadline.default', OR: [{ organizationId }, { organizationId: null }] },
+    });
+    const org = settings.find((s) => s.organizationId === organizationId);
+    const globalSetting = settings.find((s) => s.organizationId === null);
+    const value = parseInt(org?.value ?? globalSetting?.value ?? '', 10);
+    return Number.isFinite(value) && value > 0 ? value : 72;
+  }
+
   // ============ AI TAHLIL ============
 
   /** Queue worker chaqiradigan metod */
@@ -260,11 +271,13 @@ export class AppealsService {
       departments: departments.map((d) => d.name),
     });
 
-    // AI taklif qilgan kategoriya bo'yicha muddat
+    // AI taklif qilgan kategoriya bo'yicha muddat (fallback: org sozlamasi -> 72)
     const matchedCategory = await this.prisma.category.findFirst({
       where: { name: { equals: result.category, mode: 'insensitive' } },
     });
-    const deadlineHours = result.deadlineHours || matchedCategory?.defaultDeadlineHours || 72;
+    const orgDefault = await this.getDefaultDeadlineHours(appeal.organizationId);
+    const deadlineHours =
+      result.deadlineHours || matchedCategory?.defaultDeadlineHours || orgDefault;
 
     await this.prisma.appeal.update({
       where: { id: appealId },
@@ -417,7 +430,26 @@ export class AppealsService {
     if (actor.role === Role.CITIZEN) {
       appeal.comments = appeal.comments.filter((c) => !c.isInternal);
     }
-    return appeal;
+
+    // Takroriy guruhga kiruvchi boshqa murojaatlar
+    let duplicates: { id: string; appealNumber: string; title: string; status: AppealStatus }[] = [];
+    if (appeal.duplicateGroupId) {
+      duplicates = await this.prisma.appeal.findMany({
+        where: {
+          id: { not: appeal.id },
+          OR: [{ duplicateGroupId: appeal.duplicateGroupId }, { id: appeal.duplicateGroupId }],
+        },
+        select: { id: true, appealNumber: true, title: true, status: true },
+        take: 10,
+      });
+    } else {
+      duplicates = await this.prisma.appeal.findMany({
+        where: { duplicateGroupId: appeal.id },
+        select: { id: true, appealNumber: true, title: true, status: true },
+        take: 10,
+      });
+    }
+    return { ...appeal, duplicates };
   }
 
   private assertAccess(
@@ -804,6 +836,59 @@ export class AppealsService {
     return { success: true, rating: updated.citizenRating };
   }
 
+  /** Takroriy murojaatni asosiy murojaatga birlashtirish */
+  async merge(id: string, targetAppealNumber: string, comment: string | undefined, actor: AuthUser) {
+    const appeal = await this.findOne(id, actor);
+    const target = await this.prisma.appeal.findUnique({
+      where: { appealNumber: targetAppealNumber },
+    });
+    if (!target) throw new NotFoundException('Asosiy murojaat topilmadi');
+    if (target.id === id) throw new BadRequestException('Murojaatni o‘ziga birlashtirib bo‘lmaydi');
+    this.assertAccess(target, actor);
+
+    const groupId = target.duplicateGroupId ?? target.id;
+    await this.prisma.$transaction([
+      // Asosiy murojaat guruh boshi bo'ladi
+      this.prisma.appeal.update({
+        where: { id: target.id },
+        data: { duplicateGroupId: groupId },
+      }),
+      this.prisma.appeal.update({
+        where: { id },
+        data: {
+          duplicateGroupId: groupId,
+          status: AppealStatus.REJECTED,
+          rejectedReason: `Takroriy murojaat — ${target.appealNumber} bilan birlashtirildi`,
+          closedAt: new Date(),
+          statusHistory: {
+            create: {
+              fromStatus: appeal.status,
+              toStatus: AppealStatus.REJECTED,
+              changedById: actor.id,
+              comment: comment ?? `${target.appealNumber} bilan birlashtirildi (takroriy)`,
+            },
+          },
+        },
+      }),
+    ]);
+
+    await this.audit.log({
+      userId: actor.id,
+      action: 'APPEAL_MERGE',
+      entity: 'Appeal',
+      entityId: id,
+      newValue: { mergedInto: target.appealNumber, groupId },
+    });
+
+    if (appeal.citizenTelegramChatId) {
+      await this.notifications.notifyCitizenTelegram(
+        appeal.citizenTelegramChatId,
+        `ℹ️ <b>${appeal.appealNumber}</b> murojaatingiz avval yuborilgan <b>${target.appealNumber}</b> murojaat bilan birlashtirildi. Holatni o‘sha raqam orqali kuzatishingiz mumkin.`,
+      );
+    }
+    return this.findOne(target.id, actor);
+  }
+
   /** AI javob loyihasini yaratish/yangilash */
   async generateResponseDraft(id: string, actor: AuthUser) {
     const appeal = await this.findOne(id, actor);
@@ -831,6 +916,7 @@ export class AppealsService {
         createdAt: true,
         deadlineAt: true,
         closedAt: true,
+        citizenRating: true,
         citizenPhone: true,
         category: { select: { name: true } },
         department: { select: { name: true } },

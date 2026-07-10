@@ -6,6 +6,8 @@ import {
   ArrowLeft,
   Bot,
   CheckCircle2,
+  Copy,
+  GitMerge,
   MapPin,
   Paperclip,
   RefreshCw,
@@ -13,6 +15,7 @@ import {
   UserCheck,
   XCircle,
 } from 'lucide-react';
+import Link from 'next/link';
 import { api, API_URL } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import {
@@ -64,6 +67,8 @@ export default function AppealDetailPage() {
   const [comment, setComment] = useState('');
   const [isInternal, setIsInternal] = useState(false);
   const [confirmReanalyze, setConfirmReanalyze] = useState(false);
+  const [showMerge, setShowMerge] = useState(false);
+  const [mergeNumber, setMergeNumber] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
 
   const canManage = user && CAN_MANAGE.includes(user.role);
@@ -149,6 +154,9 @@ export default function AppealDetailPage() {
               </Button>
               <Button size="sm" variant="danger" disabled={busy} onClick={() => setShowReject(true)}>
                 <XCircle size={15} /> Rad etish
+              </Button>
+              <Button size="sm" variant="secondary" disabled={busy} onClick={() => setShowMerge(true)}>
+                <GitMerge size={15} /> Takroriy
               </Button>
             </>
           )}
@@ -265,6 +273,31 @@ export default function AppealDetailPage() {
         </div>
 
         <div className="space-y-4">
+          {appeal.duplicates?.length > 0 && (
+            <Card className="border-pink-200 bg-pink-50/50 p-5">
+              <h3 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-pink-900">
+                <Copy size={15} /> O‘xshash / takroriy murojaatlar
+              </h3>
+              <div className="space-y-2">
+                {appeal.duplicates.map((d: any) => (
+                  <Link
+                    key={d.id}
+                    href={`/appeals/${d.id}`}
+                    className="block rounded-lg bg-white px-3 py-2 text-sm hover:bg-pink-50"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-mono text-xs">{d.appealNumber}</span>
+                      <Badge className={STATUS_BADGE[d.status]}>
+                        {(STATUS_LABELS_UZ as any)[d.status]}
+                      </Badge>
+                    </div>
+                    <div className="truncate text-xs text-slate-600">{d.title}</div>
+                  </Link>
+                ))}
+              </div>
+            </Card>
+          )}
+
           <Card className="p-5">
             <h3 className="mb-3 text-sm font-semibold">Fuqaro ma’lumotlari</h3>
             <dl className="space-y-2 text-sm">
@@ -328,7 +361,7 @@ export default function AppealDetailPage() {
               {appeal.attachments.map((f: any) => (
                 <a
                   key={f.id}
-                  href={`${API_URL}/static/${f.filePath}`}
+                  href={`${API_URL}/files/${f.id}/raw`}
                   target="_blank"
                   rel="noreferrer"
                   className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2 text-sm hover:bg-slate-50"
@@ -522,6 +555,33 @@ export default function AppealDetailPage() {
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="secondary" onClick={() => setShowClose(false)}>Bekor qilish</Button>
             <Button type="submit" variant="success" disabled={busy}>Yopish va javob yuborish</Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Merge modal */}
+      <Modal open={showMerge} onClose={() => setShowMerge(false)} title="Takroriy murojaatni birlashtirish">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            act(
+              () => api(`/appeals/${id}/merge`, { method: 'POST', body: { targetAppealNumber: mergeNumber.trim() } }),
+              'Murojaat birlashtirildi (takroriy deb belgilandi)',
+            ).then(() => setShowMerge(false));
+          }}
+          className="space-y-3"
+        >
+          <p className="text-sm text-slate-600">
+            Ushbu murojaat takroriy deb belgilanadi va ko‘rsatilgan asosiy murojaatga bog‘lanadi.
+            Fuqaroga xabar yuboriladi.
+          </p>
+          <div>
+            <Label>Asosiy murojaat raqami *</Label>
+            <Input required placeholder="SM-20260709-0001" value={mergeNumber} onChange={(e) => setMergeNumber(e.target.value)} />
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="secondary" onClick={() => setShowMerge(false)}>Bekor qilish</Button>
+            <Button type="submit" disabled={busy}>Birlashtirish</Button>
           </div>
         </form>
       </Modal>

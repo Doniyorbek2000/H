@@ -17,6 +17,23 @@ export const STATUS_LABELS_UZ: Record<AppealStatus, string> = {
   [AppealStatus.CLOSED]: 'Yopildi',
 };
 
+/** Ruscha status nomlari (bot uchun) */
+export const STATUS_LABELS_RU: Record<AppealStatus, string> = {
+  [AppealStatus.NEW]: 'Новое обращение',
+  [AppealStatus.AI_ANALYZING]: 'Анализируется ИИ',
+  [AppealStatus.OPERATOR_REVIEW]: 'На рассмотрении оператора',
+  [AppealStatus.ASSIGNED]: 'Назначено',
+  [AppealStatus.ACCEPTED]: 'Принято',
+  [AppealStatus.IN_PROGRESS]: 'В работе',
+  [AppealStatus.WAITING_CITIZEN_INFO]: 'Ожидается информация от гражданина',
+  [AppealStatus.WAITING_EVIDENCE]: 'Ожидается подтверждение',
+  [AppealStatus.COMPLETED]: 'Выполнено',
+  [AppealStatus.REJECTED]: 'Отклонено',
+  [AppealStatus.REOPENED]: 'Открыто повторно',
+  [AppealStatus.OVERDUE]: 'Просрочено',
+  [AppealStatus.CLOSED]: 'Закрыто',
+};
+
 export const PRIORITY_LABELS_UZ: Record<AppealPriority, string> = {
   [AppealPriority.LOW]: 'Past',
   [AppealPriority.MEDIUM]: 'O‘rta',

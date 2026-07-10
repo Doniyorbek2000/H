@@ -34,3 +34,22 @@ export async function apiCall<T = any>(
   }
   return res.json() as Promise<T>;
 }
+
+/** Telegramdan yuklab olingan fayllarni murojaatga biriktirish (multipart) */
+export async function uploadAppealFiles(
+  appealId: string,
+  files: { buffer: ArrayBuffer; name: string; mime: string }[],
+): Promise<void> {
+  const form = new FormData();
+  for (const f of files) {
+    form.append('files', new Blob([f.buffer], { type: f.mime }), f.name);
+  }
+  const res = await fetch(`${API_URL}/telegram/appeals/${appealId}/attachments`, {
+    method: 'POST',
+    headers: { 'X-Bot-Secret': BOT_SECRET },
+    body: form,
+  });
+  if (!res.ok) {
+    throw new ApiError(res.status, `Fayl yuklashda xato: ${res.status}`);
+  }
+}
