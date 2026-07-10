@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { AppealPriority, AppealSource, AppealStatus, Role } from '@prisma/client';
 import { AppealsService } from './appeals.service';
 import { FilesService, multerOptions } from '../files/files.service';
@@ -51,6 +52,7 @@ export class AppealsController {
 
   @Public()
   @Post('public')
+  @Throttle({ default: { ttl: 60000, limit: 5 } }) // spamdan himoya: 5 ta/daqiqa
   @ApiOperation({ summary: 'Fuqaro murojaati (autentifikatsiyasiz, web/bot)' })
   createPublic(@Body() dto: CreateAppealDto) {
     return this.service.create(dto, null);
@@ -58,6 +60,7 @@ export class AppealsController {
 
   @Public()
   @Get('track/:appealNumber')
+  @Throttle({ default: { ttl: 60000, limit: 30 } })
   @ApiOperation({ summary: 'Murojaat holatini raqam bo‘yicha kuzatish' })
   track(@Param('appealNumber') appealNumber: string, @Query('phone') phone?: string) {
     return this.service.trackByNumber(appealNumber, phone);
@@ -65,6 +68,7 @@ export class AppealsController {
 
   @Public()
   @Post('track/:appealNumber/rate')
+  @Throttle({ default: { ttl: 60000, limit: 10 } })
   @ApiOperation({ summary: 'Murojaatni raqam bo‘yicha baholash (bot uchun)' })
   rateByNumber(
     @Param('appealNumber') appealNumber: string,

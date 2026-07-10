@@ -20,6 +20,7 @@ export default function PublicPortal() {
     description: '',
     citizenName: '',
     citizenPhone: '',
+    citizenJshshir: '',
     mahalla: '',
     address: '',
     categoryId: '',
@@ -48,6 +49,7 @@ export default function PublicPortal() {
         body: {
           ...form,
           categoryId: form.categoryId || undefined,
+          citizenJshshir: form.citizenJshshir || undefined,
           source: 'WEB',
         },
       });
@@ -151,6 +153,17 @@ export default function PublicPortal() {
                     placeholder="+998901234567"
                   />
                 </div>
+              </div>
+              <div>
+                <Label>JShShIR (ixtiyoriy, 14 raqam)</Label>
+                <Input
+                  value={form.citizenJshshir}
+                  onChange={(e) => setForm({ ...form, citizenJshshir: e.target.value })}
+                  placeholder="12345678901234"
+                  maxLength={14}
+                  pattern="[0-9]{14}"
+                  title="14 ta raqamdan iborat JShShIR"
+                />
               </div>
               <div>
                 <Label>Murojaat mavzusi *</Label>

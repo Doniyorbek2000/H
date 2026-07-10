@@ -67,6 +67,7 @@ export default function DashboardPage() {
   const [trends, setTrends] = useState<any[]>([]);
   const [overdue, setOverdue] = useState<any[]>([]);
   const [byMahalla, setByMahalla] = useState<any[]>([]);
+  const [aiQueue, setAiQueue] = useState<any[]>([]);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -77,14 +78,16 @@ export default function DashboardPage() {
       api('/dashboard/trends?days=30'),
       api('/dashboard/overdue'),
       api('/dashboard/by-mahalla'),
+      api('/appeals?status=OPERATOR_REVIEW&limit=5&sortBy=priority&sortOrder=desc').catch(() => ({ data: [] })),
     ])
-      .then(([ov, cat, st, tr, od, mh]) => {
+      .then(([ov, cat, st, tr, od, mh, aiq]) => {
         setOverview(ov);
         setByCategory(cat.slice(0, 8));
         setByStatus(st);
         setTrends(tr);
         setOverdue(od.slice(0, 6));
         setByMahalla(mh.slice(0, 6));
+        setAiQueue(aiq.data ?? []);
       })
       .catch((e) => setError(e.message));
   }, []);
@@ -198,6 +201,55 @@ export default function DashboardPage() {
           )}
         </Card>
       </div>
+
+      <Card className="border-violet-200">
+        <div className="flex items-center justify-between border-b border-violet-100 bg-violet-50/50 px-4 py-3">
+          <h3 className="flex items-center gap-1.5 text-sm font-semibold text-violet-900">
+            <Bot size={16} /> AI tavsiyalari — operator ko‘rigini kutmoqda
+          </h3>
+          <Link
+            href="/appeals?status=OPERATOR_REVIEW"
+            className="text-xs text-violet-700 hover:underline"
+          >
+            Hammasini ko‘rish →
+          </Link>
+        </div>
+        {aiQueue.length === 0 ? (
+          <p className="p-6 text-center text-sm text-slate-400">
+            AI ko‘rigini kutayotgan murojaatlar yo‘q ✅
+          </p>
+        ) : (
+          <div className="divide-y divide-slate-100">
+            {aiQueue.map((a) => (
+              <Link
+                key={a.id}
+                href={`/appeals/${a.id}`}
+                className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-violet-50/40"
+              >
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-medium">
+                    <span className="font-mono text-xs text-slate-400">{a.appealNumber}</span>{' '}
+                    {a.title}
+                  </div>
+                  <div className="truncate text-xs text-slate-500">
+                    AI: {a.aiCategorySuggestion ?? 'tahlil kutilmoqda'}
+                    {a.aiDepartmentSuggestion ? ` → ${a.aiDepartmentSuggestion}` : ''}
+                  </div>
+                </div>
+                <Badge
+                  className={
+                    a.aiPrioritySuggestion === 'URGENT' || a.priority === 'URGENT'
+                      ? 'border-red-200 bg-red-100 text-red-800'
+                      : 'border-violet-200 bg-violet-50 text-violet-700'
+                  }
+                >
+                  {a.aiPrioritySuggestion ?? a.priority}
+                </Badge>
+              </Link>
+            ))}
+          </div>
+        )}
+      </Card>
 
       <Card>
         <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">

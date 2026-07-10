@@ -32,6 +32,9 @@ jobs:
       - name: Build API
         run: pnpm --filter @smart/api build
 
+      - name: Run API tests
+        run: pnpm --filter @smart/api test
+
       - name: Build web
         run: pnpm --filter @smart/web build
         env:
