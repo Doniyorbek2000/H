@@ -12,6 +12,7 @@ Hokimliklar, davlat tashkilotlari va kommunal xizmatlar uchun **AI asosidagi mur
 - 🗺 **Xarita** — murojaatlar OpenStreetMap ustida status bo'yicha ranglangan, **heatmap rejimi** (ustuvorlik og'irligi bilan)
 - 🏆 **KPI** — xodimlar samaradorlik ball (formula asosida) va bo'limlar reytingi
 - 🌙 **Dark mode** — navbar'dagi tugma bilan almashinadi, tanlov saqlanadi, tizim temasiga mos default
+- 📱 **PWA / mobil** — portal to'liq responsive va PWA: telefonda "Bosh ekranga qo'shish" orqali ilova kabi o'rnatiladi (manifest, standalone rejim, ikonkalar)
 - 📄 **Hisobotlar** — kunlik/haftalik/oylik, AI xulosa, **PDF va Excel** eksport
 - 🔔 **Bildirishnomalar** — in-app + Telegram (xodimga vazifa, muddat eslatmasi, fuqaroga holat o'zgarishi)
 - 🤝 **Takroriy murojaatlar** — yaratishda semantik o'xshashlik bo'yicha avto-aniqlash, operator tomonidan birlashtirish (`POST /appeals/:id/merge`), fuqaroga xabar
