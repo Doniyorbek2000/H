@@ -26,7 +26,7 @@ const KEYWORD_CATEGORY_MAP: [RegExp, string, AppealPriority][] = [
   [/yo.l|asfalt|ko.cha|chuqur|yol/i, 'Yo‘l', AppealPriority.MEDIUM],
   [/chiqindi|axlat|musor|tozalik/i, 'Chiqindi', AppealPriority.MEDIUM],
   [/qurilish|obodonlashtirish|remont|ta.mirlash/i, 'Qurilish', AppealPriority.MEDIUM],
-  [/ish|bandlik|ishsiz/i, 'Bandlik', AppealPriority.MEDIUM],
+  [/\bish\b|bandlik|ishsiz/i, 'Bandlik', AppealPriority.MEDIUM],
   [/tadbirkor|biznes|kredit/i, 'Tadbirkorlik', AppealPriority.MEDIUM],
   [/nafaqa|yordam|nogiron|kam ta.minlangan|ijtimoiy/i, 'Ijtimoiy yordam', AppealPriority.MEDIUM],
   [/maktab|bog.cha|ta.lim|o.qituvchi/i, 'Ta’lim', AppealPriority.MEDIUM],
@@ -131,7 +131,8 @@ export class AiService {
       category,
       priority,
       departmentSuggestion: input.departments[0] ?? 'Kommunal xizmatlar',
-      deadlineHours: 72,
+      // 0 -> muddatni kategoriya/tashkilot sozlamasi belgilaydi
+      deadlineHours: 0,
       sentiment: urgentWords.test(text) ? 'urgent' : 'neutral',
       missingInfo,
       responseDraft:
@@ -162,7 +163,7 @@ export class AiService {
         category: String(parsed.category ?? 'Boshqa'),
         priority,
         departmentSuggestion: String(parsed.departmentSuggestion ?? ''),
-        deadlineHours: Number(parsed.deadlineHours) > 0 ? Number(parsed.deadlineHours) : 72,
+        deadlineHours: Number(parsed.deadlineHours) > 0 ? Number(parsed.deadlineHours) : 0,
         sentiment: (['neutral', 'angry', 'positive', 'urgent'].includes(String(parsed.sentiment))
           ? parsed.sentiment
           : 'neutral') as AiAnalysisResult['sentiment'],

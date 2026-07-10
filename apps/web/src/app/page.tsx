@@ -29,6 +29,8 @@ export default function PublicPortal() {
   const [trackNumber, setTrackNumber] = useState('');
   const [tracked, setTracked] = useState<any>(null);
   const [trackError, setTrackError] = useState('');
+  const [rating, setRating] = useState(0);
+  const [ratingSent, setRatingSent] = useState(false);
 
   useEffect(() => {
     api<{ data: Category[] }>('/categories?limit=50&isActive=true', { auth: false })
@@ -62,6 +64,8 @@ export default function PublicPortal() {
     e.preventDefault();
     setTrackError('');
     setTracked(null);
+    setRating(0);
+    setRatingSent(false);
     try {
       const data = await api(`/appeals/track/${encodeURIComponent(trackNumber.trim())}`, {
         auth: false,
@@ -69,6 +73,22 @@ export default function PublicPortal() {
       setTracked(data);
     } catch (err: any) {
       setTrackError(err.message);
+    }
+  };
+
+  const sendRating = async (value: number) => {
+    setRating(value);
+    try {
+      await api(`/appeals/track/${encodeURIComponent(tracked.appealNumber)}/rate`, {
+        method: 'POST',
+        auth: false,
+        body: { rating: value },
+      });
+      setRatingSent(true);
+      toast('Bahoyingiz uchun rahmat!');
+    } catch (err: any) {
+      setRating(0);
+      toast(err.message, 'error');
     }
   };
 
@@ -242,6 +262,31 @@ export default function PublicPortal() {
                   <div>Yuborilgan: {fmtDate(tracked.createdAt)}</div>
                   <div>Muddat: {fmtDate(tracked.deadlineAt)}</div>
                 </div>
+                {['COMPLETED', 'CLOSED'].includes(tracked.status) && !tracked.citizenRating && !ratingSent && (
+                  <div className="border-t border-slate-100 pt-3">
+                    <p className="mb-2 text-sm font-medium">Xizmatni baholang:</p>
+                    <div className="flex gap-1">
+                      {[1, 2, 3, 4, 5].map((v) => (
+                        <button
+                          key={v}
+                          type="button"
+                          onClick={() => sendRating(v)}
+                          className={`text-2xl transition-transform hover:scale-110 ${
+                            v <= rating ? '' : 'grayscale opacity-40'
+                          }`}
+                          aria-label={`${v} ball`}
+                        >
+                          ⭐
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {(tracked.citizenRating || ratingSent) && (
+                  <div className="border-t border-slate-100 pt-3 text-sm text-slate-600">
+                    Sizning bahoyingiz: {'⭐'.repeat(tracked.citizenRating ?? rating)} — rahmat!
+                  </div>
+                )}
                 {tracked.comments?.length > 0 && (
                   <div className="border-t border-slate-100 pt-3">
                     <p className="mb-2 text-xs font-semibold text-slate-500">Javoblar:</p>

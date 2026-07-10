@@ -230,6 +230,17 @@ export class AppealsService {
     return appeal;
   }
 
+  /** Tashkilot (yoki global) 'deadline.default' sozlamasi, bo'lmasa 72 soat */
+  private async getDefaultDeadlineHours(organizationId: string): Promise<number> {
+    const settings = await this.prisma.setting.findMany({
+      where: { key: 'deadline.default', OR: [{ organizationId }, { organizationId: null }] },
+    });
+    const org = settings.find((s) => s.organizationId === organizationId);
+    const globalSetting = settings.find((s) => s.organizationId === null);
+    const value = parseInt(org?.value ?? globalSetting?.value ?? '', 10);
+    return Number.isFinite(value) && value > 0 ? value : 72;
+  }
+
   // ============ AI TAHLIL ============
 
   /** Queue worker chaqiradigan metod */
@@ -260,11 +271,13 @@ export class AppealsService {
       departments: departments.map((d) => d.name),
     });
 
-    // AI taklif qilgan kategoriya bo'yicha muddat
+    // AI taklif qilgan kategoriya bo'yicha muddat (fallback: org sozlamasi -> 72)
     const matchedCategory = await this.prisma.category.findFirst({
       where: { name: { equals: result.category, mode: 'insensitive' } },
     });
-    const deadlineHours = result.deadlineHours || matchedCategory?.defaultDeadlineHours || 72;
+    const orgDefault = await this.getDefaultDeadlineHours(appeal.organizationId);
+    const deadlineHours =
+      result.deadlineHours || matchedCategory?.defaultDeadlineHours || orgDefault;
 
     await this.prisma.appeal.update({
       where: { id: appealId },
@@ -903,6 +916,7 @@ export class AppealsService {
         createdAt: true,
         deadlineAt: true,
         closedAt: true,
+        citizenRating: true,
         citizenPhone: true,
         category: { select: { name: true } },
         department: { select: { name: true } },
