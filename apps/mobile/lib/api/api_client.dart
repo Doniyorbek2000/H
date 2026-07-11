@@ -138,13 +138,23 @@ class ApiClient {
   }
 
   Future<dynamic> post(String path, [Object? body]) async {
-    final res = await _send('POST', path, body: body);
+    late http.Response res;
+    try {
+      res = await _send('POST', path, body: body);
+    } catch (_) {
+      throw ApiException(0, 'Tarmoq xatosi'); // offline aniqlash uchun status=0
+    }
     if (res.statusCode >= 400) _throw(res);
     return res.body.isEmpty ? null : jsonDecode(res.body);
   }
 
   Future<dynamic> patch(String path, [Object? body]) async {
-    final res = await _send('PATCH', path, body: body);
+    late http.Response res;
+    try {
+      res = await _send('PATCH', path, body: body);
+    } catch (_) {
+      throw ApiException(0, 'Tarmoq xatosi');
+    }
     if (res.statusCode >= 400) _throw(res);
     return res.body.isEmpty ? null : jsonDecode(res.body);
   }

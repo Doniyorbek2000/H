@@ -3,10 +3,13 @@ import 'package:provider/provider.dart';
 
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
+import 'services/push_service.dart';
 import 'state/auth_state.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  // FCM push (Firebase sozlanmagan bo'lsa jimgina o'tkazib yuboriladi)
+  PushService.instance.init();
   runApp(const SmartMurojaatApp());
 }
 
@@ -21,6 +24,7 @@ class SmartMurojaatApp extends StatelessWidget {
       create: (_) => AuthState()..init(),
       child: MaterialApp(
         title: 'Smart Murojaat AI',
+        navigatorKey: navigatorKey,
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           useMaterial3: true,

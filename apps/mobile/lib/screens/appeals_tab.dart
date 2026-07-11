@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../api/api_client.dart';
+import '../api/offline_queue.dart';
 import '../util/labels.dart';
 import 'appeal_detail_screen.dart';
 import 'home_screen.dart';
@@ -33,6 +34,15 @@ class _AppealsTabState extends State<AppealsTab> {
       final params = StringBuffer('/appeals?limit=20&page=$_page');
       if (_statusFilter.isNotEmpty) params.write('&status=$_statusFilter');
       final res = await ApiClient.instance.get(params.toString());
+      // Online tasdiqlandi -> offline navbatdagi amallarni yuboramiz
+      if (!res.fromCache) {
+        final sent = await OfflineQueue.instance.flush();
+        if (sent > 0 && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('📤 $sent ta offline amal yuborildi')),
+          );
+        }
+      }
       if (!mounted) return;
       setState(() {
         _appeals = (res.data['data'] as List?) ?? [];

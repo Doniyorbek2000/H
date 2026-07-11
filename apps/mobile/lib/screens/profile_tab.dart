@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../api/api_client.dart';
+import '../services/push_service.dart';
 import '../state/auth_state.dart';
 
 class ProfileTab extends StatelessWidget {
@@ -73,7 +74,10 @@ class ProfileTab extends StatelessWidget {
               backgroundColor: Theme.of(context).colorScheme.errorContainer,
               foregroundColor: Theme.of(context).colorScheme.onErrorContainer,
             ),
-            onPressed: () => auth.logout(),
+            onPressed: () async {
+              await PushService.instance.unregister();
+              await auth.logout();
+            },
             child: const Padding(
               padding: EdgeInsets.symmetric(vertical: 6),
               child: Text('Chiqish'),

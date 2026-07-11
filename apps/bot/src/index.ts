@@ -672,5 +672,29 @@ bot.catch((err) => {
   console.error('Bot xatosi:', err.error);
 });
 
-console.log('🤖 Smart Murojaat AI bot ishga tushmoqda...');
-bot.start();
+// ============ Ishga tushirish: webhook (production) yoki long-polling (dev) ============
+
+const webhookUrl = process.env.BOT_WEBHOOK_URL;
+if (webhookUrl) {
+  // Production: Telegram webhook -> HTTP server (masshtablanadi, nginx orqasida)
+  import('http').then(async ({ createServer }) => {
+    const { webhookCallback } = await import('grammy');
+    const secretPath = `/telegram/webhook/${process.env.BOT_API_SECRET || 'hook'}`;
+    const handle = webhookCallback(bot, 'http');
+    const port = parseInt(process.env.BOT_WEBHOOK_PORT || '3002', 10);
+    createServer((req, res) => {
+      if (req.method === 'POST' && req.url === secretPath) {
+        return handle(req, res);
+      }
+      res.writeHead(req.url === '/health' ? 200 : 404).end(
+        req.url === '/health' ? 'ok' : 'not found',
+      );
+    }).listen(port, async () => {
+      await bot.api.setWebhook(`${webhookUrl.replace(/\/$/, '')}${secretPath}`);
+      console.log(`🤖 Bot webhook rejimida: ${webhookUrl}${secretPath} (port ${port})`);
+    });
+  });
+} else {
+  console.log('🤖 Smart Murojaat AI bot long-polling rejimida ishga tushmoqda...');
+  bot.start();
+}

@@ -324,6 +324,20 @@ model RefreshToken {
   @@index([userId])
 }
 
+// OTP kodlari: fuqaro tasdiqlash va parol tiklash uchun
+model OtpCode {
+  id        String   @id @default(uuid())
+  target    String // email yoki telefon
+  codeHash  String
+  purpose   String // REGISTER | PASSWORD_RESET | PHONE_VERIFY
+  expiresAt DateTime
+  consumed  Boolean  @default(false)
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([target, purpose])
+}
+
 model Setting {
   id             String   @id @default(uuid())
   organizationId String?

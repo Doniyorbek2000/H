@@ -157,135 +157,127 @@ export class DashboardService {
     return Array.from(byDay.entries()).map(([date, v]) => ({ date, ...v }));
   }
 
-  /** Xodimlar va bo'limlar KPI */
+  /**
+   * Xodimlar va bo'limlar KPI.
+   * Optimallashtirilgan: har bir xodim/bo'lim uchun alohida so'rov (N+1) o'rniga
+   * barcha murojaatlar BITTA so'rovda olinadi va xotirada guruhlanadi.
+   */
   async kpi(actor: AuthUser) {
     const scope = this.orgScope(actor);
+    const now = new Date();
 
-    // Xodimlar KPI
-    const executors = await this.prisma.user.findMany({
-      where: {
-        role: { in: [Role.EXECUTOR, Role.MANAGER] },
-        isActive: true,
-        ...(actor.role === Role.SUPER_ADMIN
-          ? {}
-          : { organizationId: actor.organizationId ?? '__none__' }),
-      },
-      select: { id: true, fullName: true, department: { select: { name: true } } },
-    });
-
-    const users = [] as any[];
-    for (const ex of executors) {
-      const appeals = await this.prisma.appeal.findMany({
-        where: { ...scope, assignedToId: ex.id },
+    const [executors, departments, appeals] = await Promise.all([
+      this.prisma.user.findMany({
+        where: {
+          role: { in: [Role.EXECUTOR, Role.MANAGER] },
+          isActive: true,
+          ...(actor.role === Role.SUPER_ADMIN
+            ? {}
+            : { organizationId: actor.organizationId ?? '__none__' }),
+        },
+        select: { id: true, fullName: true, department: { select: { name: true } } },
+      }),
+      this.prisma.department.findMany({
+        where:
+          actor.role === Role.SUPER_ADMIN
+            ? { isActive: true }
+            : { organizationId: actor.organizationId ?? '__none__', isActive: true },
+        select: { id: true, name: true },
+      }),
+      this.prisma.appeal.findMany({
+        where: { ...scope, OR: [{ assignedToId: { not: null } }, { departmentId: { not: null } }] },
         select: {
+          assignedToId: true,
+          departmentId: true,
           status: true,
           createdAt: true,
           completedAt: true,
           deadlineAt: true,
           citizenRating: true,
-          statusHistory: { where: { toStatus: AppealStatus.REOPENED }, select: { id: true } },
+          statusHistory: { where: { toStatus: AppealStatus.REOPENED }, select: { id: true }, take: 1 },
         },
-      });
-      const total = appeals.length;
-      const completedList = appeals.filter((a) =>
-        DONE_STATUSES.includes(a.status),
-      );
+      }),
+    ]);
+
+    type A = (typeof appeals)[number];
+    const metrics = (list: A[]) => {
+      const total = list.length;
+      const completedList = list.filter((a) => DONE_STATUSES.includes(a.status));
       const completed = completedList.length;
-      const overdue = appeals.filter((a) => a.status === AppealStatus.OVERDUE).length;
-      const reopened = appeals.filter((a) => a.statusHistory.length > 0).length;
-      const onTime = completedList.filter(
-        (a) => !a.deadlineAt || (a.completedAt && a.completedAt <= a.deadlineAt),
-      ).length;
       const durations = completedList
         .filter((a) => a.completedAt)
         .map((a) => (a.completedAt!.getTime() - a.createdAt.getTime()) / 3600000);
       const avgCompletionHours = durations.length
         ? Math.round((durations.reduce((s, d) => s + d, 0) / durations.length) * 10) / 10
         : null;
-      const ratings = appeals.filter((a) => a.citizenRating != null).map((a) => a.citizenRating!);
+      const ratings = list.filter((a) => a.citizenRating != null).map((a) => a.citizenRating!);
       const avgRating = ratings.length
         ? Math.round((ratings.reduce((s, r) => s + r, 0) / ratings.length) * 100) / 100
         : null;
+      const onTime = completedList.filter(
+        (a) => !a.deadlineAt || (a.completedAt && a.completedAt <= a.deadlineAt),
+      ).length;
+      return { total, completed, completedList, avgCompletionHours, avgRating, onTime };
+    };
 
-      // efficiencyScore formulasi (texnik topshiriqdagi)
+    // Xodimlar bo'yicha guruhlash (1 marta aylanish)
+    const byUser = new Map<string, A[]>();
+    const byDep = new Map<string, A[]>();
+    for (const a of appeals) {
+      if (a.assignedToId) (byUser.get(a.assignedToId) ?? byUser.set(a.assignedToId, []).get(a.assignedToId)!).push(a);
+      if (a.departmentId) (byDep.get(a.departmentId) ?? byDep.set(a.departmentId, []).get(a.departmentId)!).push(a);
+    }
+
+    const users = executors.map((ex) => {
+      const list = byUser.get(ex.id) ?? [];
+      const m = metrics(list);
+      const overdue = list.filter((a) => a.status === AppealStatus.OVERDUE).length;
+      const reopened = list.filter((a) => a.statusHistory.length > 0).length;
       const efficiencyScore =
-        total === 0
+        m.total === 0
           ? 0
           : Math.round(
-              ((completed / total) * 40 +
-                (completed > 0 ? (onTime / completed) * 30 : 0) +
-                ((avgRating ?? 0) / 5) * 20 -
-                (reopened / total) * 10) *
+              ((m.completed / m.total) * 40 +
+                (m.completed > 0 ? (m.onTime / m.completed) * 30 : 0) +
+                ((m.avgRating ?? 0) / 5) * 20 -
+                (reopened / m.total) * 10) *
                 10,
             ) / 10;
-
-      users.push({
+      return {
         userId: ex.id,
         fullName: ex.fullName,
         departmentName: ex.department?.name ?? null,
-        total,
-        completed,
+        total: m.total,
+        completed: m.completed,
         overdue,
         reopened,
-        onTime,
-        avgCompletionHours,
-        avgRating,
+        onTime: m.onTime,
+        avgCompletionHours: m.avgCompletionHours,
+        avgRating: m.avgRating,
         efficiencyScore,
-      });
-    }
+      };
+    });
     users.sort((a, b) => b.efficiencyScore - a.efficiencyScore);
 
-    // Bo'limlar KPI
-    const departments = await this.prisma.department.findMany({
-      where:
-        actor.role === Role.SUPER_ADMIN
-          ? { isActive: true }
-          : { organizationId: actor.organizationId ?? '__none__', isActive: true },
-      select: { id: true, name: true },
-    });
-    const deps = [] as any[];
-    for (const dep of departments) {
-      const appeals = await this.prisma.appeal.findMany({
-        where: { ...scope, departmentId: dep.id },
-        select: {
-          status: true,
-          createdAt: true,
-          completedAt: true,
-          deadlineAt: true,
-          citizenRating: true,
-        },
-      });
-      const total = appeals.length;
-      const completedList = appeals.filter((a) =>
-        DONE_STATUSES.includes(a.status),
-      );
-      const completed = completedList.length;
-      const overdue = appeals.filter(
+    const deps = departments.map((dep) => {
+      const list = byDep.get(dep.id) ?? [];
+      const m = metrics(list);
+      const overdue = list.filter(
         (a) =>
           a.status === AppealStatus.OVERDUE ||
-          (a.deadlineAt && a.deadlineAt < new Date() && !a.completedAt),
+          (a.deadlineAt && a.deadlineAt < now && !a.completedAt),
       ).length;
-      const durations = completedList
-        .filter((a) => a.completedAt)
-        .map((a) => (a.completedAt!.getTime() - a.createdAt.getTime()) / 3600000);
-      const avgCompletionHours = durations.length
-        ? Math.round((durations.reduce((s, d) => s + d, 0) / durations.length) * 10) / 10
-        : null;
-      const ratings = appeals.filter((a) => a.citizenRating != null).map((a) => a.citizenRating!);
-      const rating = ratings.length
-        ? Math.round((ratings.reduce((s, r) => s + r, 0) / ratings.length) * 100) / 100
-        : 0;
-      deps.push({
+      return {
         departmentId: dep.id,
         departmentName: dep.name,
-        total,
-        completed,
-        completionRate: total ? Math.round((completed / total) * 1000) / 10 : 0,
-        avgCompletionHours,
+        total: m.total,
+        completed: m.completed,
+        completionRate: m.total ? Math.round((m.completed / m.total) * 1000) / 10 : 0,
+        avgCompletionHours: m.avgCompletionHours,
         overdue,
-        rating,
-      });
-    }
+        rating: m.avgRating ?? 0,
+      };
+    });
     deps.sort((a, b) => b.completionRate - a.completionRate);
 
     return { users, departments: deps };

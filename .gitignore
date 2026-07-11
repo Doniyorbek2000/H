@@ -13,3 +13,7 @@ storage/
 .turbo/
 *.tsbuildinfo
 dump.rdb
+
+# Flutter release imzo (maxfiy)
+apps/mobile/android/key.properties
+apps/mobile/android/app/google-services.json

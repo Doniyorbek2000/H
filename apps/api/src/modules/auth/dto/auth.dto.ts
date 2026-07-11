@@ -41,6 +41,42 @@ export class RefreshDto {
   refreshToken: string;
 }
 
+export class RequestOtpDto {
+  @ApiProperty({ description: 'Email yoki telefon raqam' })
+  @IsString()
+  @IsNotEmpty()
+  identifier: string;
+}
+
+export class ResetPasswordDto {
+  @ApiProperty({ description: 'Email yoki telefon' })
+  @IsString()
+  @IsNotEmpty()
+  identifier: string;
+
+  @ApiProperty({ example: '123456' })
+  @IsString()
+  @IsNotEmpty()
+  code: string;
+
+  @ApiProperty({ example: 'YangiParol123!' })
+  @IsString()
+  @MinLength(6)
+  newPassword: string;
+}
+
+export class VerifyPhoneDto {
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  phone: string;
+
+  @ApiProperty({ example: '123456' })
+  @IsString()
+  @IsNotEmpty()
+  code: string;
+}
+
 export class TelegramLinkDto {
   @ApiProperty({ description: 'Email yoki telefon' })
   @IsString()
