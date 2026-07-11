@@ -82,6 +82,7 @@ model User {
   organizationId String?
   departmentId   String?
   telegramChatId String?  @unique
+  fcmToken       String?
   isActive       Boolean  @default(true)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt

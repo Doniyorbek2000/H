@@ -45,6 +45,13 @@ export class AuthController {
     return this.authService.me(user.id);
   }
 
+  @Post('fcm-token')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Mobil qurilma FCM tokenini saqlash (push uchun)' })
+  fcmToken(@CurrentUser() user: AuthUser, @Body() body: { token?: string }) {
+    return this.authService.setFcmToken(user.id, body?.token ?? null);
+  }
+
   @Public()
   @Post('telegram-link')
   @ApiOperation({ summary: 'Telegram chatni xodim akkauntiga bog‘lash (bot uchun)' })

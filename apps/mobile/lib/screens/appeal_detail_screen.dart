@@ -1,8 +1,11 @@
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:record/record.dart';
 import 'package:signature/signature.dart';
 
 import '../api/api_client.dart';
@@ -124,6 +127,54 @@ class _AppealDetailScreenState extends State<AppealDetailScreen> {
         'longitude': pos.longitude,
       }),
       'GPS joylashuv biriktirildi',
+    );
+  }
+
+  /// Ovozli izoh yozib, audio fayl sifatida biriktirish
+  Future<void> _recordVoiceNote() async {
+    final recorder = AudioRecorder();
+    if (!await recorder.hasPermission()) {
+      _snack('Mikrofonga ruxsat berilmadi', error: true);
+      return;
+    }
+    final dir = await getTemporaryDirectory();
+    final path = '${dir.path}/ovozli_izoh_${DateTime.now().millisecondsSinceEpoch}.m4a';
+    await recorder.start(const RecordConfig(encoder: AudioEncoder.aacLc), path: path);
+
+    if (!mounted) return;
+    final send = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        title: const Row(children: [
+          Icon(Icons.mic, color: Colors.red),
+          SizedBox(width: 8),
+          Text('Yozilmoqda...'),
+        ]),
+        content: const Text('Ovozli izohingizni ayting, so‘ng "To‘xtatish va yuborish"ni bosing.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Bekor qilish'),
+          ),
+          FilledButton.icon(
+            onPressed: () => Navigator.of(context).pop(true),
+            icon: const Icon(Icons.stop, size: 18),
+            label: const Text('To‘xtatish va yuborish'),
+          ),
+        ],
+      ),
+    );
+    final recordedPath = await recorder.stop();
+    recorder.dispose();
+    if (send != true || recordedPath == null) return;
+
+    final bytes = await File(recordedPath).readAsBytes();
+    await _run(
+      () => ApiClient.instance.uploadAttachments(widget.appealId, [
+        (bytes: bytes, filename: 'ovozli_izoh.m4a', mime: 'audio/mp4'),
+      ]),
+      'Ovozli izoh biriktirildi',
     );
   }
 
@@ -277,6 +328,11 @@ class _AppealDetailScreenState extends State<AppealDetailScreen> {
               onPressed: _busy ? null : _attachLocation,
               icon: const Icon(Icons.my_location, size: 18),
               label: const Text('GPS'),
+            ),
+            OutlinedButton.icon(
+              onPressed: _busy ? null : _recordVoiceNote,
+              icon: const Icon(Icons.mic, size: 18),
+              label: const Text('Ovoz'),
             ),
             OutlinedButton.icon(
               onPressed: _busy ? null : _signAndConfirm,

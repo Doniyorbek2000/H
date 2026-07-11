@@ -424,6 +424,20 @@ bot.on('message:document', async (ctx) => {
   await ctx.reply(t(s.lang, 'docAccepted', { n: s.media.length }));
 });
 
+// Ovozli izoh (Telegram voice = OGG/OPUS)
+bot.on('message:voice', async (ctx) => {
+  const s = getSession(String(ctx.chat.id));
+  if (s.step !== 'media') return;
+  s.media = s.media ?? [];
+  if (s.media.length >= 5) return;
+  s.media.push({
+    fileId: ctx.message.voice.file_id,
+    name: `ovozli_izoh_${s.media.length + 1}.ogg`,
+    mime: 'audio/ogg',
+  });
+  await ctx.reply(t(s.lang, 'voiceAccepted', { n: s.media.length }));
+});
+
 /** Telegram serveridan faylni yuklab olish */
 async function downloadTelegramFile(fileId: string): Promise<ArrayBuffer | null> {
   try {
