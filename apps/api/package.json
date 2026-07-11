@@ -37,6 +37,7 @@
     "@nestjs/swagger": "^7.4.2",
     "@nestjs/throttler": "^6.2.1",
     "@prisma/client": "^5.22.0",
+    "@sentry/node": "^8.47.0",
     "@smart/shared": "workspace:*",
     "bcryptjs": "^2.4.3",
     "bullmq": "^5.28.1",
