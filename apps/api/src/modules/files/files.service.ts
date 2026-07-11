@@ -12,6 +12,7 @@ import { extname, join } from 'path';
 import { v4 as uuid } from 'uuid';
 import { PrismaService } from '../../prisma/prisma.service';
 import { StorageService } from './storage.service';
+import { AntivirusService } from './antivirus.service';
 import { AppealsService } from '../appeals/appeals.service';
 import { AuthUser } from '../../common/decorators/current-user.decorator';
 
@@ -63,6 +64,7 @@ export class FilesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
+    private readonly antivirus: AntivirusService,
     @Inject(forwardRef(() => AppealsService))
     private readonly appeals: AppealsService,
   ) {}
@@ -105,7 +107,14 @@ export class FilesService {
     }
     const created = [];
     for (const f of files) {
-      await this.assertRealMime(join(uploadDir(), f.filename), f.mimetype);
+      const abs = join(uploadDir(), f.filename);
+      await this.assertRealMime(abs, f.mimetype);
+      // Virusdan tekshirish (ClamAV sozlangan bo'lsa)
+      const scan = await this.antivirus.scan(abs);
+      if (!scan.clean) {
+        await unlink(abs).catch(() => {});
+        throw new BadRequestException(`Faylda zararli dastur aniqlandi: ${scan.signature}`);
+      }
       const filePath = await this.storage.store(f.filename, f.mimetype);
       created.push(
         await this.prisma.appealAttachment.create({

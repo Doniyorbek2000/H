@@ -240,6 +240,26 @@ bot.callbackQuery(/^(apr|rej):(.+)$/, async (ctx) => {
   }
 });
 
+// Fuqaro shikoyati: /shikoyat SM-... sabab
+bot.hears(/^\/shikoyat[_ ](\S+)\s+([\s\S]+)/, async (ctx) => {
+  const s = getSession(String(ctx.chat.id));
+  const number = ctx.match[1].replace(/_/g, '-');
+  const reason = ctx.match[2].trim();
+  try {
+    await apiCall(`/appeals/track/${number}/complaint`, {
+      method: 'POST',
+      body: { reason, chatId: String(ctx.chat.id) },
+    });
+    await ctx.reply(
+      s.lang === 'ru'
+        ? '⚠️ Ваша жалоба зарегистрирована и передана руководству.'
+        : '⚠️ Shikoyatingiz qabul qilindi va rahbariyatga yetkazildi.',
+    );
+  } catch (e) {
+    await ctx.reply(e instanceof ApiError ? `❌ ${e.message}` : t(s.lang, 'genericError'));
+  }
+});
+
 bot.command('help', async (ctx) => {
   const s = getSession(String(ctx.chat.id));
   await ctx.reply(t(s.lang, 'help'), { parse_mode: 'HTML' });

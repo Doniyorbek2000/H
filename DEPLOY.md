@@ -113,6 +113,8 @@ Quyidagilar hozircha YO'Q va production ehtiyojiga qarab qo'shilishi kerak
 
 - Fuqaro identifikatsiyasi: SMS/OTP, OneID/MyID integratsiyasi
 - Monitoring/alerting (Sentry, Prometheus), markazlashtirilgan log
-- Fayllarni virusdan tekshirish (ClamAV)
+- (Endi mavjud — yoqish ixtiyoriy) Fayllarni virusdan tekshirish: `docker compose --profile av up -d` + `.env` da `CLAMAV_HOST=clamav`
+- (Endi mavjud — yoqish ixtiyoriy) Xato monitoring: `.env` da `SENTRY_DSN` to'ldiring
+- (Endi mavjud) Load test: `k6 run -e BASE_URL=https://murojaat.example.uz/api load-test/k6-smoke.js`
 - Mobil ilovada push qabul qilish (firebase_messaging) va offline yozish navbati
 - GIS: geocoding va mahalla chegaralari (hozir faqat nuqta + heatmap)

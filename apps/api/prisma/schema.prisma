@@ -91,6 +91,7 @@ model User {
   department         Department?           @relation("DepartmentUsers", fields: [departmentId], references: [id], onDelete: SetNull)
   managedDepartments Department[]          @relation("DepartmentManager")
   assignedAppeals    Appeal[]              @relation("AssignedAppeals")
+  coAssignedAppeals  AppealAssignee[]      @relation("CoAssignedAppeals")
   createdAppeals     Appeal[]              @relation("CreatedAppeals")
   comments           AppealComment[]
   attachments        AppealAttachment[]
@@ -195,6 +196,9 @@ model Appeal {
   duplicateGroupId       String?
   reminder24Sent         Boolean        @default(false)
   reminder6Sent          Boolean        @default(false)
+  deadlineExtendedCount  Int            @default(0)
+  escalatedAt            DateTime?
+  escalationReason       String?
   createdAt              DateTime       @default(now())
   updatedAt              DateTime       @updatedAt
 
@@ -206,6 +210,7 @@ model Appeal {
   comments      AppealComment[]
   attachments   AppealAttachment[]
   statusHistory AppealStatusHistory[]
+  coAssignees   AppealAssignee[]
 
   @@index([organizationId, status])
   @@index([departmentId])
@@ -214,6 +219,21 @@ model Appeal {
   @@index([createdAt])
   @@index([deadlineAt])
   @@index([mahalla])
+}
+
+// Hamijrochilar: bir murojaatga asosiy ijrochidan tashqari qo'shimcha xodimlar
+model AppealAssignee {
+  id        String   @id @default(uuid())
+  appealId  String
+  userId    String
+  addedById String?
+  createdAt DateTime @default(now())
+
+  appeal Appeal @relation(fields: [appealId], references: [id], onDelete: Cascade)
+  user   User   @relation("CoAssignedAppeals", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([appealId, userId])
+  @@index([userId])
 }
 
 model AppealComment {

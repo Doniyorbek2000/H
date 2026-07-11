@@ -9,7 +9,7 @@ Hokimliklar, davlat tashkilotlari va kommunal xizmatlar uchun **AI asosidagi mur
 - 🔁 **To'liq ijro oqimi** — NEW → AI_ANALYZING → OPERATOR_REVIEW → ASSIGNED → ACCEPTED → IN_PROGRESS → COMPLETED → CLOSED (+ OVERDUE, REOPENED, REJECTED, WAITING_*)
 - ⏰ **Muddat nazorati** — kategoriya bo'yicha standart muddatlar, 24/6 soat eslatmalar, muddat o'tsa avtomatik OVERDUE + ogohlantirish
 - 📊 **Rahbar dashboardi** — statistik kartalar, 30 kunlik trend, kategoriya/mahalla kesimi, kechikayotganlar
-- 🗺 **Xarita** — murojaatlar OpenStreetMap ustida status bo'yicha ranglangan, **heatmap rejimi** (ustuvorlik og'irligi bilan)
+- 🗺 **Xarita / GIS** — murojaatlar OpenStreetMap ustida status bo'yicha ranglangan, **heatmap rejimi**, **mahalla chegaralari** (GeoJSON, admin yuklaydi), **geokodlash** (manzil↔koordinata, Nominatim) — murojaat manzili bo'yicha koordinata avto-to'ldiriladi
 - 🏆 **KPI** — xodimlar samaradorlik ball (formula asosida) va bo'limlar reytingi
 - 🌙 **Dark mode** — navbar'dagi tugma bilan almashinadi, tanlov saqlanadi, tizim temasiga mos default
 - 📱 **PWA / mobil** — portal to'liq responsive va PWA: telefonda "Bosh ekranga qo'shish" orqali ilova kabi o'rnatiladi (manifest, standalone rejim, ikonkalar)
@@ -19,7 +19,8 @@ Hokimliklar, davlat tashkilotlari va kommunal xizmatlar uchun **AI asosidagi mur
 - 🔔 **Bildirishnomalar** — **real-time WebSocket (Socket.IO)** + in-app + Telegram (xodimga vazifa, muddat eslatmasi, fuqaroga holat o'zgarishi, shoshilinch murojaatda rahbarga darhol ogohlantirish)
 - 🧠 **AI Analytics** — sentiment taqsimoti, AI kategoriya aniqligi, kalit so'zlar buluti, dublikat guruhlar statistikasi (`/ai-analytics`)
 - 🤝 **Takroriy murojaatlar** — yaratishda semantik o'xshashlik bo'yicha avto-aniqlash, operator tomonidan birlashtirish (`POST /appeals/:id/merge`), fuqaroga xabar
-- 🔐 **Xavfsizlik** — JWT access/refresh (rotation), rol asosidagi ruxsatlar, tashkilot doirasi (org scope), fayl kirish nazorati (egalik+org), login/register throttle, **OTP (SMS/email) + parol tiklash**, MIME **magic-byte** tekshiruvi, helmet, audit log, strukturaviy JSON log (pino)
+- 🔄 **To'liq ijro sikli** — **hamijrochilar** (co-executor), **muddat uzaytirish** (sabab + audit), **eskalatsiya** (rahbarlarga ko'tarish), **fuqaro shikoyati** (web/bot `/shikoyat`)
+- 🔐 **Xavfsizlik** — JWT access/refresh (rotation), rol asosidagi ruxsatlar, tashkilot doirasi (org scope), fayl kirish nazorati (egalik+org), login/register throttle, **OTP (SMS/email) + parol tiklash**, **OneID (id.egov.uz)** orqali kirish, MIME **magic-byte** + **ClamAV virus** tekshiruvi, helmet, audit log, strukturaviy JSON log (pino), **Sentry** xato monitoring
 - 📱 **Telegram bot** — to'liq **o'zbek/rus** tillarida; fuqaro: murojaat yuborish/kuzatish/baholash; xodim: /hisobot, /bugun, /kechikkanlar
 - 🗄 **Storage abstraksiyasi** — default lokal disk; `S3_*` env berilsa **MinIO/S3** ga yuklaydi (presigned URL), `docker compose --profile s3` bilan lokal MinIO
 

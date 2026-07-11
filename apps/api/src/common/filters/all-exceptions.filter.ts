@@ -8,10 +8,12 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { Response } from 'express';
+import * as Sentry from '@sentry/node';
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
   private readonly logger = new Logger('Exceptions');
+  private readonly sentryOn = Boolean(process.env.SENTRY_DSN);
 
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
@@ -42,6 +44,12 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     if (status >= 500) {
       this.logger.error(`${request?.method} ${request?.url} -> ${status}`);
+      // Server xatolarini Sentry'ga yuborish (sozlangan bo'lsa)
+      if (this.sentryOn && exception instanceof Error) {
+        Sentry.captureException(exception, {
+          extra: { path: request?.url, method: request?.method },
+        });
+      }
     }
 
     response.status(status).json({

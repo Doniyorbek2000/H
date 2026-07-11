@@ -190,6 +190,32 @@ export class RateDto {
   feedback?: string;
 }
 
+export class ExtendDeadlineDto {
+  @ApiProperty({ description: 'Qo‘shimcha soatlar', example: 48 })
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  additionalHours: number;
+
+  @ApiProperty({ description: 'Uzaytirish sababi' })
+  @IsString()
+  @IsNotEmpty()
+  reason: string;
+}
+
+export class CoAssigneeDto {
+  @ApiProperty({ description: 'Hamijrochi xodim ID' })
+  @IsUUID()
+  userId: string;
+}
+
+export class EscalateDto {
+  @ApiProperty({ description: 'Eskalatsiya/shikoyat sababi' })
+  @IsString()
+  @IsNotEmpty()
+  reason: string;
+}
+
 export class MergeAppealDto {
   @ApiProperty({ example: 'SM-20260709-0001', description: 'Asosiy (saqlanadigan) murojaat raqami' })
   @IsString()

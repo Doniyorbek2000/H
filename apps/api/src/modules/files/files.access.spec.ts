@@ -43,7 +43,8 @@ describe('FilesService — fayl kirish nazorati', () => {
         }
       },
     };
-    return new FilesService(prisma as any, storage as any, appeals as any);
+    const antivirus = { scan: jest.fn().mockResolvedValue({ clean: true }) };
+    return new FilesService(prisma as any, storage as any, antivirus as any, appeals as any);
   }
 
   const user = (over: Partial<AuthUser>): AuthUser => ({

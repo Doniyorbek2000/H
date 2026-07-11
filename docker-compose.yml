@@ -54,6 +54,10 @@ services:
       ESKIZ_FROM: ${ESKIZ_FROM:-4546}
       NODE_ENV: ${NODE_ENV:-production}
       LOG_LEVEL: ${LOG_LEVEL:-info}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      CLAMAV_HOST: ${CLAMAV_HOST:-}
+      CLAMAV_PORT: ${CLAMAV_PORT:-3310}
+      GEOCODER_URL: ${GEOCODER_URL:-}
       API_PORT: 3001
       WEB_URL: ${WEB_URL:-http://localhost:3000}
       SWAGGER_ENABLED: ${SWAGGER_ENABLED:-true}
@@ -91,6 +95,19 @@ services:
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       API_URL: http://api:3001
       BOT_API_SECRET: ${BOT_API_SECRET:-change-me-bot-secret}
+
+  # Ixtiyoriy antivirus: docker compose --profile av up -d
+  clamav:
+    image: clamav/clamav:latest
+    profiles: ['av']
+    restart: unless-stopped
+    ports:
+      - '3310:3310'
+    healthcheck:
+      test: ['CMD', 'clamdcheck.sh']
+      interval: 60s
+      timeout: 10s
+      retries: 3
 
   # Ixtiyoriy S3-mos storage: docker compose --profile s3 up -d
   minio:

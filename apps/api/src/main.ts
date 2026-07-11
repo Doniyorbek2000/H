@@ -2,12 +2,21 @@ import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Logger as PinoLogger } from 'nestjs-pino';
+import * as Sentry from '@sentry/node';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 
 async function bootstrap() {
+  // Xatolarni kuzatish (SENTRY_DSN berilsa)
+  if (process.env.SENTRY_DSN) {
+    Sentry.init({
+      dsn: process.env.SENTRY_DSN,
+      environment: process.env.NODE_ENV || 'development',
+      tracesSampleRate: 0.1,
+    });
+  }
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: true });
   app.useLogger(app.get(PinoLogger));
   const logger = app.get(PinoLogger);
