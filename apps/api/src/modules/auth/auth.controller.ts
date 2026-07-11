@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Headers, Ip, Post, UnauthorizedException } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { LoginDto, RefreshDto, RegisterDto, TelegramLinkDto } from './dto/auth.dto';
 import { Public } from '../../common/decorators/public.decorator';
@@ -12,6 +13,7 @@ export class AuthController {
 
   @Public()
   @Post('login')
+  @Throttle({ default: { ttl: 60000, limit: 8 } }) // brute-force himoya: 8 urinish/daqiqa/IP
   @ApiOperation({ summary: 'Tizimga kirish (email/telefon + parol)' })
   login(@Body() dto: LoginDto, @Ip() ip: string, @Headers('user-agent') userAgent?: string) {
     return this.authService.login(dto, ip, userAgent);
@@ -19,6 +21,7 @@ export class AuthController {
 
   @Public()
   @Post('register')
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
   @ApiOperation({ summary: 'Fuqaro ro‘yxatdan o‘tishi' })
   register(@Body() dto: RegisterDto) {
     return this.authService.register(dto);

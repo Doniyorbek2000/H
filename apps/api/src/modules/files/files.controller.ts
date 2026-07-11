@@ -13,9 +13,10 @@ import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagg
 import { Response } from 'express';
 import { FilesService, multerOptions } from './files.service';
 import { StorageService } from './storage.service';
-import { Public } from '../../common/decorators/public.decorator';
+import { AuthUser, CurrentUser } from '../../common/decorators/current-user.decorator';
 
 @ApiTags('files')
+@ApiBearerAuth()
 @Controller('files')
 export class FilesController {
   constructor(
@@ -24,7 +25,6 @@ export class FilesController {
   ) {}
 
   @Post('upload')
-  @ApiBearerAuth()
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('file', multerOptions()))
   async upload(@UploadedFile() file: Express.Multer.File) {
@@ -40,17 +40,19 @@ export class FilesController {
   }
 
   @Get(':id')
-  @ApiBearerAuth()
-  findOne(@Param('id') id: string) {
-    return this.service.findOne(id);
+  findOne(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    return this.service.findOne(id, user);
   }
 
-  /** Faylni yuklab olish: lokal -> stream, S3 -> presigned redirect */
-  @Public()
+  /**
+   * Fayl kontentini olish. Autentifikatsiya + murojaatga kirish huquqi talab qilinadi
+   * (EXECUTOR faqat o'ziga biriktirilgan, CITIZEN faqat o'z murojaati fayllarini oladi).
+   * Lokal -> stream, S3 -> qisqa muddatli presigned redirect.
+   */
   @Get(':id/raw')
-  @ApiOperation({ summary: 'Fayl kontentini olish (storage-agnostik)' })
-  async raw(@Param('id') id: string, @Res() res: Response) {
-    const { file, target } = await this.service.resolveRaw(id);
+  @ApiOperation({ summary: 'Fayl kontentini olish (kirish huquqi tekshiriladi)' })
+  async raw(@Param('id') id: string, @CurrentUser() user: AuthUser, @Res() res: Response) {
+    const { file, target } = await this.service.resolveRaw(id, user);
     if (target.kind === 'redirect') {
       return res.redirect(target.url);
     }

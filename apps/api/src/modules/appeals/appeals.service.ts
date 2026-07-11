@@ -470,7 +470,8 @@ export class AppealsService {
     return { ...appeal, duplicates };
   }
 
-  private assertAccess(
+  /** Murojaatga kirish huquqini tekshirish (fayl kirishida ham qayta ishlatiladi) */
+  assertAccess(
     appeal: { organizationId: string; assignedToId: string | null; createdById: string | null },
     actor: AuthUser,
   ) {
