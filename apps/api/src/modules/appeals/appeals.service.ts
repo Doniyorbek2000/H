@@ -18,6 +18,7 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AiService } from '../ai/ai.service';
+import { GeoService } from '../geo/geo.service';
 import { AuditService } from '../audit/audit.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { AppealQueueService } from './appeal-queue.service';
@@ -111,9 +112,29 @@ export class AppealsService {
     private readonly ai: AiService,
     private readonly audit: AuditService,
     private readonly notifications: NotificationsService,
+    private readonly geo: GeoService,
     @Inject(forwardRef(() => AppealQueueService))
     private readonly queue: AppealQueueService,
   ) {}
+
+  /** Manzil bo'yicha koordinatani fon rejimida to'ldirish (best-effort) */
+  private geocodeInBackground(appealId: string, parts: (string | null | undefined)[]) {
+    const query = parts.filter(Boolean).join(', ');
+    if (!query) return;
+    setImmediate(async () => {
+      try {
+        const r = await this.geo.geocode(query);
+        if (r) {
+          await this.prisma.appeal.update({
+            where: { id: appealId },
+            data: { latitude: r.latitude, longitude: r.longitude },
+          });
+        }
+      } catch {
+        /* geocode ixtiyoriy — xato jim o'tkaziladi */
+      }
+    });
+  }
 
   // ============ YARATISH ============
 
@@ -232,6 +253,11 @@ export class AppealsService {
 
     // AI tahlilni navbatga qo'yamiz
     await this.queue.enqueueAnalysis(appeal.id);
+
+    // Koordinata berilmagan bo'lsa, manzil bo'yicha fon rejimida geokodlaymiz
+    if (!dto.latitude && !dto.longitude && (dto.address || dto.mahalla)) {
+      this.geocodeInBackground(appeal.id, [dto.address, dto.mahalla, dto.district, dto.region]);
+    }
 
     return appeal;
   }

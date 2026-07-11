@@ -19,6 +19,7 @@ import { TelegramModule } from './modules/telegram/telegram.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { FilesModule } from './modules/files/files.module';
 import { SettingsModule } from './modules/settings/settings.module';
+import { GeoModule } from './modules/geo/geo.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { HealthController } from './health.controller';
@@ -56,6 +57,7 @@ import { HealthController } from './health.controller';
     AuditModule,
     FilesModule,
     SettingsModule,
+    GeoModule,
   ],
   controllers: [HealthController],
   providers: [

@@ -43,6 +43,22 @@ export default function MapPage() {
         maxZoom: 19,
       }).addTo(map);
       mapInstance.current = map;
+
+      // Mahalla chegaralari (GeoJSON) — admin yuklagan bo'lsa ko'rsatamiz
+      try {
+        const gj = await api('/geo/mahalla-boundaries', { auth: false });
+        if (gj?.features?.length) {
+          L.geoJSON(gj, {
+            style: { color: '#2563eb', weight: 1.5, fillOpacity: 0.05 },
+            onEachFeature: (f: any, layer: any) => {
+              const name = f.properties?.name || f.properties?.NAME || f.properties?.mahalla;
+              if (name) layer.bindTooltip(String(name), { sticky: true });
+            },
+          }).addTo(map);
+        }
+      } catch {
+        /* chegaralar ixtiyoriy */
+      }
       setReady(true);
     })();
     return () => {

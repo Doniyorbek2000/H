@@ -9,7 +9,7 @@ Hokimliklar, davlat tashkilotlari va kommunal xizmatlar uchun **AI asosidagi mur
 - 🔁 **To'liq ijro oqimi** — NEW → AI_ANALYZING → OPERATOR_REVIEW → ASSIGNED → ACCEPTED → IN_PROGRESS → COMPLETED → CLOSED (+ OVERDUE, REOPENED, REJECTED, WAITING_*)
 - ⏰ **Muddat nazorati** — kategoriya bo'yicha standart muddatlar, 24/6 soat eslatmalar, muddat o'tsa avtomatik OVERDUE + ogohlantirish
 - 📊 **Rahbar dashboardi** — statistik kartalar, 30 kunlik trend, kategoriya/mahalla kesimi, kechikayotganlar
-- 🗺 **Xarita** — murojaatlar OpenStreetMap ustida status bo'yicha ranglangan, **heatmap rejimi** (ustuvorlik og'irligi bilan)
+- 🗺 **Xarita / GIS** — murojaatlar OpenStreetMap ustida status bo'yicha ranglangan, **heatmap rejimi**, **mahalla chegaralari** (GeoJSON, admin yuklaydi), **geokodlash** (manzil↔koordinata, Nominatim) — murojaat manzili bo'yicha koordinata avto-to'ldiriladi
 - 🏆 **KPI** — xodimlar samaradorlik ball (formula asosida) va bo'limlar reytingi
 - 🌙 **Dark mode** — navbar'dagi tugma bilan almashinadi, tanlov saqlanadi, tizim temasiga mos default
 - 📱 **PWA / mobil** — portal to'liq responsive va PWA: telefonda "Bosh ekranga qo'shish" orqali ilova kabi o'rnatiladi (manifest, standalone rejim, ikonkalar)
