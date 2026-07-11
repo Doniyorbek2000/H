@@ -9,6 +9,7 @@ import * as bcrypt from 'bcryptjs';
 import { createHash, randomBytes } from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
+import { OtpService } from './otp.service';
 import { LoginDto, RegisterDto, TelegramLinkDto } from './dto/auth.dto';
 
 const REFRESH_DAYS = 7;
@@ -19,6 +20,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly audit: AuditService,
+    private readonly otp: OtpService,
   ) {}
 
   private sha256(value: string) {
@@ -135,6 +137,62 @@ export class AuthService {
     });
     if (!user) throw new UnauthorizedException();
     return this.sanitize(user as User);
+  }
+
+  // ============ OTP / PAROL TIKLASH ============
+
+  /** Parol tiklash uchun kod so'rash (email yoki telefon) */
+  async requestPasswordReset(identifier: string) {
+    const user = await this.prisma.user.findFirst({
+      where: { OR: [{ email: identifier.toLowerCase() }, { phone: identifier }] },
+    });
+    // Akkaunt yo'qligini oshkor qilmaymiz (enumeration himoyasi)
+    if (!user) return { sent: true };
+    const { devCode } = await this.otp.issue(identifier, 'PASSWORD_RESET');
+    await this.audit.log({
+      userId: user.id,
+      action: 'PASSWORD_RESET_REQUEST',
+      entity: 'User',
+      entityId: user.id,
+    });
+    return { sent: true, ...(devCode ? { devCode } : {}) };
+  }
+
+  /** Kod bilan yangi parol o'rnatish */
+  async resetPassword(identifier: string, code: string, newPassword: string) {
+    const ok = await this.otp.verify(identifier, 'PASSWORD_RESET', code);
+    if (!ok) throw new BadRequestException('Kod noto‘g‘ri yoki muddati o‘tgan');
+    const user = await this.prisma.user.findFirst({
+      where: { OR: [{ email: identifier.toLowerCase() }, { phone: identifier }] },
+    });
+    if (!user) throw new BadRequestException('Foydalanuvchi topilmadi');
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    await this.prisma.user.update({ where: { id: user.id }, data: { passwordHash } });
+    // Barcha sessiyalarni bekor qilamiz
+    await this.prisma.refreshToken.updateMany({
+      where: { userId: user.id, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+    await this.audit.log({
+      userId: user.id,
+      action: 'PASSWORD_RESET_DONE',
+      entity: 'User',
+      entityId: user.id,
+    });
+    return { success: true };
+  }
+
+  /** Fuqaro telefonini tasdiqlash uchun kod so'rash */
+  async requestPhoneVerification(phone: string) {
+    const { devCode } = await this.otp.issue(phone, 'PHONE_VERIFY');
+    return { sent: true, ...(devCode ? { devCode } : {}) };
+  }
+
+  /** Telefon tasdiqlash kodini tekshirish (murojaat yuborishdan oldin) */
+  async verifyPhone(phone: string, code: string) {
+    const ok = await this.otp.verify(phone, 'PHONE_VERIFY', code);
+    if (!ok) throw new BadRequestException('Kod noto‘g‘ri yoki muddati o‘tgan');
+    return { verified: true };
   }
 
   /** Mobil qurilma FCM tokenini saqlash (null — o'chirish, masalan logoutda) */

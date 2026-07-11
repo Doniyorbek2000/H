@@ -19,7 +19,7 @@ Hokimliklar, davlat tashkilotlari va kommunal xizmatlar uchun **AI asosidagi mur
 - 🔔 **Bildirishnomalar** — **real-time WebSocket (Socket.IO)** + in-app + Telegram (xodimga vazifa, muddat eslatmasi, fuqaroga holat o'zgarishi, shoshilinch murojaatda rahbarga darhol ogohlantirish)
 - 🧠 **AI Analytics** — sentiment taqsimoti, AI kategoriya aniqligi, kalit so'zlar buluti, dublikat guruhlar statistikasi (`/ai-analytics`)
 - 🤝 **Takroriy murojaatlar** — yaratishda semantik o'xshashlik bo'yicha avto-aniqlash, operator tomonidan birlashtirish (`POST /appeals/:id/merge`), fuqaroga xabar
-- 🔐 **Xavfsizlik** — JWT access/refresh (rotation), rol asosidagi ruxsatlar, tashkilot doirasi (org scope), rate limit, helmet, fayl validatsiyasi, audit log
+- 🔐 **Xavfsizlik** — JWT access/refresh (rotation), rol asosidagi ruxsatlar, tashkilot doirasi (org scope), fayl kirish nazorati (egalik+org), login/register throttle, **OTP (SMS/email) + parol tiklash**, MIME **magic-byte** tekshiruvi, helmet, audit log, strukturaviy JSON log (pino)
 - 📱 **Telegram bot** — to'liq **o'zbek/rus** tillarida; fuqaro: murojaat yuborish/kuzatish/baholash; xodim: /hisobot, /bugun, /kechikkanlar
 - 🗄 **Storage abstraksiyasi** — default lokal disk; `S3_*` env berilsa **MinIO/S3** ga yuklaydi (presigned URL), `docker compose --profile s3` bilan lokal MinIO
 

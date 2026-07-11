@@ -2,7 +2,15 @@ import { Body, Controller, Get, Headers, Ip, Post, UnauthorizedException } from 
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
-import { LoginDto, RefreshDto, RegisterDto, TelegramLinkDto } from './dto/auth.dto';
+import {
+  LoginDto,
+  RefreshDto,
+  RegisterDto,
+  RequestOtpDto,
+  ResetPasswordDto,
+  TelegramLinkDto,
+  VerifyPhoneDto,
+} from './dto/auth.dto';
 import { Public } from '../../common/decorators/public.decorator';
 import { AuthUser, CurrentUser } from '../../common/decorators/current-user.decorator';
 
@@ -46,6 +54,38 @@ export class AuthController {
   @ApiOperation({ summary: 'Joriy foydalanuvchi ma’lumotlari' })
   me(@CurrentUser() user: AuthUser) {
     return this.authService.me(user.id);
+  }
+
+  @Public()
+  @Post('password-reset/request')
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
+  @ApiOperation({ summary: 'Parol tiklash kodini so‘rash (SMS/email)' })
+  requestPasswordReset(@Body() dto: RequestOtpDto) {
+    return this.authService.requestPasswordReset(dto.identifier);
+  }
+
+  @Public()
+  @Post('password-reset/confirm')
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
+  @ApiOperation({ summary: 'Kod bilan yangi parol o‘rnatish' })
+  resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.authService.resetPassword(dto.identifier, dto.code, dto.newPassword);
+  }
+
+  @Public()
+  @Post('phone/request-code')
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
+  @ApiOperation({ summary: 'Fuqaro telefonini tasdiqlash kodi (murojaatdan oldin)' })
+  requestPhoneCode(@Body() dto: RequestOtpDto) {
+    return this.authService.requestPhoneVerification(dto.identifier);
+  }
+
+  @Public()
+  @Post('phone/verify')
+  @Throttle({ default: { ttl: 60000, limit: 8 } })
+  @ApiOperation({ summary: 'Telefon tasdiqlash kodini tekshirish' })
+  verifyPhone(@Body() dto: VerifyPhoneDto) {
+    return this.authService.verifyPhone(dto.phone, dto.code);
   }
 
   @Post('fcm-token')

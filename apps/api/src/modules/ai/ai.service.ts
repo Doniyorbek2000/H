@@ -51,39 +51,52 @@ export class AiService {
     return Boolean(this.apiKey);
   }
 
-  /** Gemini generateContent chaqiruvi. Xatoda null qaytaradi — tizim ishlashda davom etadi. */
+  /**
+   * Gemini generateContent chaqiruvi — timeout + eksponensial retry bilan.
+   * Vaqtincha xatolar (429/5xx/tarmoq) uchun 3 martagacha qayta urinadi.
+   * Yakuniy xatoda null qaytaradi — tizim fallbackka o'tadi, to'xtamaydi.
+   */
   private async callGemini(prompt: string, jsonMode = false): Promise<string | null> {
     if (!this.apiKey) return null;
-    try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${this.apiKey}`;
-      const body: Record<string, unknown> = {
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.3,
-          maxOutputTokens: 2048,
-          ...(jsonMode ? { responseMimeType: 'application/json' } : {}),
-        },
-      };
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${this.apiKey}`;
+    const body = {
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: {
+        temperature: 0.3,
+        maxOutputTokens: 2048,
+        ...(jsonMode ? { responseMimeType: 'application/json' } : {}),
+      },
+    };
+    const maxAttempts = 3;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 30000);
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-        signal: controller.signal,
-      });
-      clearTimeout(timer);
-      if (!res.ok) {
-        this.logger.warn(`Gemini API xatosi: ${res.status} ${await res.text()}`);
-        return null;
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+          signal: controller.signal,
+        });
+        clearTimeout(timer);
+        if (res.ok) {
+          const data: any = await res.json();
+          const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+          return typeof text === 'string' ? text : null;
+        }
+        // Vaqtincha xato (429/5xx) -> retry; doimiy (4xx) -> darhol to'xtash
+        const retriable = res.status === 429 || res.status >= 500;
+        this.logger.warn(`Gemini ${res.status} (urinish ${attempt}/${maxAttempts})`);
+        if (!retriable || attempt === maxAttempts) return null;
+      } catch (e) {
+        clearTimeout(timer);
+        this.logger.warn(`Gemini xato ${attempt}/${maxAttempts}: ${(e as Error).message}`);
+        if (attempt === maxAttempts) return null;
       }
-      const data: any = await res.json();
-      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-      return typeof text === 'string' ? text : null;
-    } catch (e) {
-      this.logger.warn(`Gemini chaqiruvida xato: ${(e as Error).message}`);
-      return null;
+      // Eksponensial backoff: 0.5s, 1s
+      await new Promise((r) => setTimeout(r, 500 * 2 ** (attempt - 1)));
     }
+    return null;
   }
 
   /** JSON javobni xavfsiz parse qilish (markdown code fence bo'lsa ham) */

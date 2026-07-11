@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { diskStorage } from 'multer';
 import { existsSync, mkdirSync } from 'fs';
+import { unlink } from 'fs/promises';
 import { extname, join } from 'path';
 import { v4 as uuid } from 'uuid';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -66,12 +67,45 @@ export class FilesService {
     private readonly appeals: AppealsService,
   ) {}
 
+  /**
+   * Fayl kontenti (magic-byte) haqiqatan ruxsat etilgan turmi — sarlavha
+   * (mimetype) soxtalashtirishga qarshi. Matn/hujjatlar magic-byte'siz
+   * bo'lishi mumkin, shuning uchun aniqlanmasa header'ga ishonamiz, lekin
+   * aniqlangan tur ruxsat ro'yxatida bo'lishi shart.
+   */
+  private async assertRealMime(absPath: string, headerMime: string) {
+    try {
+      const ft = await import('file-type');
+      const detected = await ft.fromFile(absPath);
+      if (detected && !ALLOWED_MIME.includes(detected.mime)) {
+        await unlink(absPath).catch(() => {});
+        throw new BadRequestException(
+          `Fayl kontenti mos emas (aniqlangan: ${detected.mime}). Soxta fayl rad etildi.`,
+        );
+      }
+      // Rasm/video/audio da sarlavha bilan kontent turi mos kelishi kerak
+      if (
+        detected &&
+        /^(image|video|audio)\//.test(headerMime) &&
+        detected.mime !== headerMime &&
+        !detected.mime.startsWith(headerMime.split('/')[0] + '/')
+      ) {
+        await unlink(absPath).catch(() => {});
+        throw new BadRequestException('Fayl turi va kontenti mos kelmadi');
+      }
+    } catch (e) {
+      if (e instanceof BadRequestException) throw e;
+      // file-type xatosi (masalan matn fayli) — header validatsiyasiga tayanamiz
+    }
+  }
+
   async attachToAppeal(appealId: string, files: Express.Multer.File[], uploadedById?: string) {
     if (!files || files.length === 0) {
       throw new BadRequestException('Fayl yuborilmadi');
     }
     const created = [];
     for (const f of files) {
+      await this.assertRealMime(join(uploadDir(), f.filename), f.mimetype);
       const filePath = await this.storage.store(f.filename, f.mimetype);
       created.push(
         await this.prisma.appealAttachment.create({
