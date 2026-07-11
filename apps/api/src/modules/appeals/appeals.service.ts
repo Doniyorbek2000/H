@@ -347,7 +347,7 @@ export class AppealsService {
       case Role.SUPER_ADMIN:
         return {};
       case Role.EXECUTOR:
-        return { assignedToId: actor.id };
+        return { OR: [{ assignedToId: actor.id }, { coAssignees: { some: { userId: actor.id } } }] };
       case Role.MANAGER:
         return {
           organizationId: actor.organizationId ?? '__none__',
@@ -441,6 +441,9 @@ export class AppealsService {
           orderBy: { createdAt: 'asc' },
         },
         createdBy: { select: { id: true, fullName: true } },
+        coAssignees: {
+          include: { user: { select: { id: true, fullName: true, role: true } } },
+        },
       },
     });
     if (!appeal) throw new NotFoundException('Murojaat topilmadi');
@@ -472,12 +475,18 @@ export class AppealsService {
 
   /** Murojaatga kirish huquqini tekshirish (fayl kirishida ham qayta ishlatiladi) */
   assertAccess(
-    appeal: { organizationId: string; assignedToId: string | null; createdById: string | null },
+    appeal: {
+      organizationId: string;
+      assignedToId: string | null;
+      createdById: string | null;
+      coAssignees?: { userId: string }[];
+    },
     actor: AuthUser,
   ) {
     if (actor.role === Role.SUPER_ADMIN) return;
     if (actor.role === Role.EXECUTOR) {
-      if (appeal.assignedToId !== actor.id) {
+      const isCoAssignee = appeal.coAssignees?.some((c) => c.userId === actor.id) ?? false;
+      if (appeal.assignedToId !== actor.id && !isCoAssignee) {
         throw new ForbiddenException('Bu murojaat sizga biriktirilmagan');
       }
       return;
@@ -906,6 +915,145 @@ export class AppealsService {
       );
     }
     return this.findOne(target.id, actor);
+  }
+
+  // ============ MUDDAT UZAYTIRISH ============
+
+  async extendDeadline(id: string, additionalHours: number, reason: string, actor: AuthUser) {
+    const appeal = await this.findOne(id, actor);
+    const base = appeal.deadlineAt && appeal.deadlineAt > new Date() ? appeal.deadlineAt : new Date();
+    const newDeadline = new Date(base.getTime() + additionalHours * 3600 * 1000);
+    const updated = await this.prisma.appeal.update({
+      where: { id },
+      data: {
+        deadlineAt: newDeadline,
+        deadlineExtendedCount: { increment: 1 },
+        reminder24Sent: false,
+        reminder6Sent: false,
+        // Agar OVERDUE bo'lgan bo'lsa, ishga qaytaramiz
+        status: appeal.status === AppealStatus.OVERDUE ? AppealStatus.IN_PROGRESS : appeal.status,
+        statusHistory: {
+          create: {
+            fromStatus: appeal.status,
+            toStatus: appeal.status === AppealStatus.OVERDUE ? AppealStatus.IN_PROGRESS : appeal.status,
+            changedById: actor.id,
+            comment: `Muddat ${additionalHours} soatga uzaytirildi. Sabab: ${reason}`,
+          },
+        },
+      },
+      include: appealListInclude,
+    });
+    await this.audit.log({
+      userId: actor.id,
+      action: 'APPEAL_EXTEND_DEADLINE',
+      entity: 'Appeal',
+      entityId: id,
+      oldValue: { deadlineAt: appeal.deadlineAt },
+      newValue: { deadlineAt: newDeadline, reason, additionalHours },
+    });
+    if (updated.assignedToId && updated.assignedToId !== actor.id) {
+      await this.notifications.notifyUser({
+        userId: updated.assignedToId,
+        title: 'Muddat uzaytirildi',
+        message: `${updated.appealNumber}: yangi muddat ${newDeadline.toLocaleString('uz-UZ')}`,
+        type: NotificationType.STATUS_CHANGED,
+        meta: { appealId: id },
+      });
+    }
+    return updated;
+  }
+
+  // ============ HAMIJROCHILAR ============
+
+  async addCoAssignee(id: string, userId: string, actor: AuthUser) {
+    const appeal = await this.findOne(id, actor);
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user || !user.isActive) throw new BadRequestException('Xodim topilmadi yoki faol emas');
+    if (user.organizationId !== appeal.organizationId && actor.role !== Role.SUPER_ADMIN) {
+      throw new BadRequestException('Xodim boshqa tashkilotdan');
+    }
+    if (userId === appeal.assignedToId) {
+      throw new BadRequestException('Bu xodim allaqachon asosiy ijrochi');
+    }
+    await this.prisma.appealAssignee.upsert({
+      where: { appealId_userId: { appealId: id, userId } },
+      update: {},
+      create: { appealId: id, userId, addedById: actor.id },
+    });
+    await this.audit.log({
+      userId: actor.id,
+      action: 'APPEAL_ADD_COASSIGNEE',
+      entity: 'Appeal',
+      entityId: id,
+      newValue: { userId },
+    });
+    await this.notifications.notifyUser({
+      userId,
+      title: 'Siz hamijrochi qilib biriktirildingiz',
+      message: `${appeal.appealNumber}: ${appeal.title}`,
+      type: NotificationType.ASSIGNED,
+      meta: { appealId: id },
+    });
+    return this.findOne(id, actor);
+  }
+
+  async removeCoAssignee(id: string, userId: string, actor: AuthUser) {
+    await this.findOne(id, actor);
+    await this.prisma.appealAssignee.deleteMany({ where: { appealId: id, userId } });
+    await this.audit.log({
+      userId: actor.id,
+      action: 'APPEAL_REMOVE_COASSIGNEE',
+      entity: 'Appeal',
+      entityId: id,
+      oldValue: { userId },
+    });
+    return this.findOne(id, actor);
+  }
+
+  // ============ SHIKOYAT / ESKALATSIYA ============
+
+  /** Fuqaro shikoyati yoki xodim eskalatsiyasi — rahbarlarga ko'tariladi */
+  async escalate(id: string, reason: string, actor: AuthUser | null, byCitizenChatId?: string) {
+    const appeal = await this.prisma.appeal.findUnique({ where: { id } });
+    if (!appeal) throw new NotFoundException('Murojaat topilmadi');
+    if (actor) this.assertAccess(appeal, actor);
+    else if (byCitizenChatId && appeal.citizenTelegramChatId !== byCitizenChatId) {
+      throw new ForbiddenException('Bu murojaat sizga tegishli emas');
+    }
+    const updated = await this.prisma.appeal.update({
+      where: { id },
+      data: {
+        escalatedAt: new Date(),
+        escalationReason: reason,
+        priority: appeal.priority === AppealPriority.URGENT ? appeal.priority : AppealPriority.HIGH,
+        comments: {
+          create: { userId: actor?.id, message: `⚠️ Eskalatsiya: ${reason}`, isInternal: false },
+        },
+      },
+      include: appealListInclude,
+    });
+    await this.audit.log({
+      userId: actor?.id,
+      action: 'APPEAL_ESCALATE',
+      entity: 'Appeal',
+      entityId: id,
+      newValue: { reason },
+    });
+    await this.notifications.notifyRole({
+      organizationId: appeal.organizationId,
+      roles: [Role.LEADER, Role.MANAGER, Role.ADMIN],
+      title: '⚠️ Murojaat eskalatsiya qilindi',
+      message: `${appeal.appealNumber}: ${reason}`,
+      type: NotificationType.OVERDUE_ALERT,
+      meta: { appealId: id },
+    });
+    return updated;
+  }
+
+  async escalateByNumber(appealNumber: string, reason: string, chatId?: string) {
+    const appeal = await this.prisma.appeal.findUnique({ where: { appealNumber } });
+    if (!appeal) throw new NotFoundException('Murojaat topilmadi');
+    return this.escalate(appeal.id, reason, null, chatId);
   }
 
   /** AI javob loyihasini yaratish/yangilash */

@@ -19,8 +19,11 @@ import {
   AssignAppealDto,
   ChangeStatusDto,
   CloseDto,
+  CoAssigneeDto,
   CommentDto,
   CreateAppealDto,
+  EscalateDto,
+  ExtendDeadlineDto,
   MergeAppealDto,
   RateDto,
   RejectDto,
@@ -202,6 +205,56 @@ export class AppealsController {
   @ApiBearerAuth()
   rate(@Param('id') id: string, @Body() dto: RateDto, @CurrentUser() user: AuthUser) {
     return this.service.rate(id, dto, user);
+  }
+
+  @Post(':id/extend-deadline')
+  @ApiBearerAuth()
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.OPERATOR, Role.MANAGER)
+  @ApiOperation({ summary: 'Ijro muddatini uzaytirish (sabab + audit bilan)' })
+  extendDeadline(
+    @Param('id') id: string,
+    @Body() dto: ExtendDeadlineDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.service.extendDeadline(id, dto.additionalHours, dto.reason, user);
+  }
+
+  @Post(':id/co-assignees')
+  @ApiBearerAuth()
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.OPERATOR, Role.MANAGER)
+  @ApiOperation({ summary: 'Hamijrochi xodim qo‘shish' })
+  addCoAssignee(@Param('id') id: string, @Body() dto: CoAssigneeDto, @CurrentUser() user: AuthUser) {
+    return this.service.addCoAssignee(id, dto.userId, user);
+  }
+
+  @Post(':id/co-assignees/remove')
+  @ApiBearerAuth()
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.OPERATOR, Role.MANAGER)
+  @ApiOperation({ summary: 'Hamijrochini olib tashlash' })
+  removeCoAssignee(
+    @Param('id') id: string,
+    @Body() dto: CoAssigneeDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.service.removeCoAssignee(id, dto.userId, user);
+  }
+
+  @Post(':id/escalate')
+  @ApiBearerAuth()
+  @Roles(...STAFF_ROLES)
+  @ApiOperation({ summary: 'Murojaatni eskalatsiya qilish (rahbarlarga ko‘tarish)' })
+  escalate(@Param('id') id: string, @Body() dto: EscalateDto, @CurrentUser() user: AuthUser) {
+    return this.service.escalate(id, dto.reason, user);
+  }
+
+  @Public()
+  @Post('track/:appealNumber/complaint')
+  @ApiOperation({ summary: 'Fuqaro shikoyati (raqam bo‘yicha, bot/web)' })
+  complaint(
+    @Param('appealNumber') appealNumber: string,
+    @Body() dto: EscalateDto & { chatId?: string },
+  ) {
+    return this.service.escalateByNumber(appealNumber, dto.reason, dto.chatId);
   }
 
   @Post(':id/merge')

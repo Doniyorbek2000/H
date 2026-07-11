@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
+  AlarmClockPlus,
   ArrowLeft,
   Bot,
   CheckCircle2,
@@ -12,7 +13,9 @@ import {
   Paperclip,
   RefreshCw,
   Send,
+  TriangleAlert,
   UserCheck,
+  UserPlus,
   XCircle,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -69,6 +72,12 @@ export default function AppealDetailPage() {
   const [confirmReanalyze, setConfirmReanalyze] = useState(false);
   const [showMerge, setShowMerge] = useState(false);
   const [mergeNumber, setMergeNumber] = useState('');
+  const [showExtend, setShowExtend] = useState(false);
+  const [extendForm, setExtendForm] = useState({ additionalHours: '48', reason: '' });
+  const [showCoAssign, setShowCoAssign] = useState(false);
+  const [coAssignId, setCoAssignId] = useState('');
+  const [showEscalate, setShowEscalate] = useState(false);
+  const [escalateReason, setEscalateReason] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
 
   const canManage = user && CAN_MANAGE.includes(user.role);
@@ -157,6 +166,15 @@ export default function AppealDetailPage() {
               </Button>
               <Button size="sm" variant="secondary" disabled={busy} onClick={() => setShowMerge(true)}>
                 <GitMerge size={15} /> Takroriy
+              </Button>
+              <Button size="sm" variant="secondary" disabled={busy} onClick={() => setShowExtend(true)}>
+                <AlarmClockPlus size={15} /> Muddat
+              </Button>
+              <Button size="sm" variant="secondary" disabled={busy} onClick={() => setShowCoAssign(true)}>
+                <UserPlus size={15} /> Hamijrochi
+              </Button>
+              <Button size="sm" variant="secondary" disabled={busy} onClick={() => setShowEscalate(true)}>
+                <TriangleAlert size={15} /> Eskalatsiya
               </Button>
             </>
           )}
@@ -321,7 +339,29 @@ export default function AppealDetailPage() {
               <div><dt className="text-xs text-slate-500">Kategoriya</dt><dd className="font-medium">{appeal.category?.name ?? '—'}</dd></div>
               <div><dt className="text-xs text-slate-500">Bo‘lim</dt><dd className="font-medium">{appeal.department?.name ?? '—'}</dd></div>
               <div><dt className="text-xs text-slate-500">Mas’ul xodim</dt><dd className="font-medium">{appeal.assignedTo?.fullName ?? 'Biriktirilmagan'}</dd></div>
-              <div><dt className="text-xs text-slate-500">Muddat</dt><dd className="font-medium">{fmtDate(appeal.deadlineAt)}</dd></div>
+              {appeal.coAssignees?.length > 0 && (
+                <div>
+                  <dt className="text-xs text-slate-500">Hamijrochilar</dt>
+                  <dd className="font-medium">
+                    {appeal.coAssignees.map((c: any) => c.user.fullName).join(', ')}
+                  </dd>
+                </div>
+              )}
+              <div>
+                <dt className="text-xs text-slate-500">Muddat</dt>
+                <dd className="font-medium">
+                  {fmtDate(appeal.deadlineAt)}
+                  {appeal.deadlineExtendedCount > 0 && (
+                    <span className="ml-1 text-xs text-amber-600">({appeal.deadlineExtendedCount}x uzaytirilgan)</span>
+                  )}
+                </dd>
+              </div>
+              {appeal.escalatedAt && (
+                <div className="rounded-lg bg-red-50 dark:bg-red-950/40 p-2">
+                  <dt className="text-xs font-semibold text-red-700 dark:text-red-300">⚠️ Eskalatsiya qilingan</dt>
+                  <dd className="text-xs text-red-600 dark:text-red-400">{appeal.escalationReason}</dd>
+                </div>
+              )}
               {appeal.completedAt && <div><dt className="text-xs text-slate-500">Bajarilgan</dt><dd>{fmtDate(appeal.completedAt)}</dd></div>}
               {appeal.closedAt && <div><dt className="text-xs text-slate-500">Yopilgan</dt><dd>{fmtDate(appeal.closedAt)}</dd></div>}
             </dl>
@@ -584,6 +624,87 @@ export default function AppealDetailPage() {
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="secondary" onClick={() => setShowMerge(false)}>Bekor qilish</Button>
             <Button type="submit" disabled={busy}>Birlashtirish</Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Muddat uzaytirish */}
+      <Modal open={showExtend} onClose={() => setShowExtend(false)} title="Ijro muddatini uzaytirish">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            act(
+              () => api(`/appeals/${id}/extend-deadline`, { method: 'POST', body: { additionalHours: Number(extendForm.additionalHours), reason: extendForm.reason } }),
+              'Muddat uzaytirildi',
+            ).then(() => setShowExtend(false));
+          }}
+          className="space-y-3"
+        >
+          <div>
+            <Label>Qo‘shimcha soatlar *</Label>
+            <Input type="number" min={1} required value={extendForm.additionalHours} onChange={(e) => setExtendForm({ ...extendForm, additionalHours: e.target.value })} />
+          </div>
+          <div>
+            <Label>Sabab *</Label>
+            <Textarea required rows={2} value={extendForm.reason} onChange={(e) => setExtendForm({ ...extendForm, reason: e.target.value })} />
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="secondary" onClick={() => setShowExtend(false)}>Bekor qilish</Button>
+            <Button type="submit" disabled={busy}>Uzaytirish</Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Hamijrochi qo'shish */}
+      <Modal open={showCoAssign} onClose={() => setShowCoAssign(false)} title="Hamijrochi xodim qo‘shish">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            act(
+              () => api(`/appeals/${id}/co-assignees`, { method: 'POST', body: { userId: coAssignId } }),
+              'Hamijrochi qo‘shildi',
+            ).then(() => { setShowCoAssign(false); setCoAssignId(''); });
+          }}
+          className="space-y-3"
+        >
+          <div>
+            <Label>Xodim *</Label>
+            <Select required value={coAssignId} onChange={(e) => setCoAssignId(e.target.value)}>
+              <option value="">Tanlang...</option>
+              {executors.map((u) => (
+                <option key={u.id} value={u.id}>{u.fullName} ({u.department?.name ?? 'bo‘limsiz'})</option>
+              ))}
+            </Select>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="secondary" onClick={() => setShowCoAssign(false)}>Bekor qilish</Button>
+            <Button type="submit" disabled={busy || !coAssignId}>Qo‘shish</Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Eskalatsiya */}
+      <Modal open={showEscalate} onClose={() => setShowEscalate(false)} title="Murojaatni eskalatsiya qilish">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            act(
+              () => api(`/appeals/${id}/escalate`, { method: 'POST', body: { reason: escalateReason } }),
+              'Eskalatsiya qilindi (rahbarlarga xabar berildi)',
+            ).then(() => { setShowEscalate(false); setEscalateReason(''); });
+          }}
+          className="space-y-3"
+        >
+          <p className="text-sm text-slate-600 dark:text-slate-300">
+            Murojaat rahbar va bo‘lim boshliqlariga ko‘tariladi, ustuvorlik oshiriladi.
+          </p>
+          <div>
+            <Label>Sabab *</Label>
+            <Textarea required rows={3} value={escalateReason} onChange={(e) => setEscalateReason(e.target.value)} />
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="secondary" onClick={() => setShowEscalate(false)}>Bekor qilish</Button>
+            <Button type="submit" variant="danger" disabled={busy}>Eskalatsiya</Button>
           </div>
         </form>
       </Modal>
