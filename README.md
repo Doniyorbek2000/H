@@ -13,6 +13,7 @@ Hokimliklar, davlat tashkilotlari va kommunal xizmatlar uchun **AI asosidagi mur
 - 🏆 **KPI** — xodimlar samaradorlik ball (formula asosida) va bo'limlar reytingi
 - 🌙 **Dark mode** — navbar'dagi tugma bilan almashinadi, tanlov saqlanadi, tizim temasiga mos default
 - 📱 **PWA / mobil** — portal to'liq responsive va PWA: telefonda "Bosh ekranga qo'shish" orqali ilova kabi o'rnatiladi (manifest, standalone rejim, ikonkalar)
+- 📲 **Flutter mobil ilova** (`apps/mobile`) — xodimlar/rahbarlar uchun: login, dashboard, biriktirilgan murojaatlar, AI tavsiyalari, holat yangilash, foto/GPS/elektron imzo biriktirish, QR skaner, offline kesh ([batafsil](apps/mobile/README.md))
 - 📄 **Hisobotlar** — kunlik/haftalik/oylik, AI xulosa, **PDF va Excel** eksport
 - 🔔 **Bildirishnomalar** — **real-time WebSocket (Socket.IO)** + in-app + Telegram (xodimga vazifa, muddat eslatmasi, fuqaroga holat o'zgarishi, shoshilinch murojaatda rahbarga darhol ogohlantirish)
 - 🧠 **AI Analytics** — sentiment taqsimoti, AI kategoriya aniqligi, kalit so'zlar buluti, dublikat guruhlar statistikasi (`/ai-analytics`)
@@ -41,8 +42,9 @@ Hokimliklar, davlat tashkilotlari va kommunal xizmatlar uchun **AI asosidagi mur
 smart-murojaat-ai/
 ├─ apps/
 │  ├─ api/        # NestJS backend (auth, appeals, AI, dashboard, reports, ...)
-│  ├─ web/        # Next.js admin panel + fuqaro portali
-│  └─ bot/        # Telegram bot (grammY)
+│  ├─ web/        # Next.js admin panel + fuqaro portali (PWA)
+│  ├─ bot/        # Telegram bot (grammY)
+│  └─ mobile/     # Flutter mobil ilova (xodimlar/rahbarlar uchun)
 ├─ packages/
 │  └─ shared/     # Umumiy enums, types, konstantalar (uz labellar)
 ├─ deploy/nginx.conf.example
