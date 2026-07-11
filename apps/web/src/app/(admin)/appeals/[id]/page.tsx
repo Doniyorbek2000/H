@@ -16,7 +16,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import Link from 'next/link';
-import { api, API_URL } from '@/lib/api';
+import { api, apiDownload } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import {
   PRIORITY_BADGE,
@@ -359,16 +359,18 @@ export default function AppealDetailPage() {
             <div className="space-y-2">
               {appeal.attachments.length === 0 && <p className="text-sm text-slate-400">Fayl biriktirilmagan</p>}
               {appeal.attachments.map((f: any) => (
-                <a
+                <button
                   key={f.id}
-                  href={`${API_URL}/files/${f.id}/raw`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center justify-between rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-800/60"
+                  onClick={() =>
+                    apiDownload(`/files/${f.id}/raw`, f.fileName).catch((e) =>
+                      toast(e.message, 'error'),
+                    )
+                  }
+                  className="flex w-full items-center justify-between rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 text-left text-sm hover:bg-slate-50 dark:hover:bg-slate-800/60"
                 >
                   <span className="truncate">{f.fileName}</span>
                   <span className="text-xs text-slate-400">{Math.round(f.size / 1024)} KB</span>
-                </a>
+                </button>
               ))}
             </div>
           </Card>

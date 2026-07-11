@@ -1,10 +1,18 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  forwardRef,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { diskStorage } from 'multer';
 import { existsSync, mkdirSync } from 'fs';
 import { extname, join } from 'path';
 import { v4 as uuid } from 'uuid';
 import { PrismaService } from '../../prisma/prisma.service';
 import { StorageService } from './storage.service';
+import { AppealsService } from '../appeals/appeals.service';
+import { AuthUser } from '../../common/decorators/current-user.decorator';
 
 const ALLOWED_MIME = [
   'image/jpeg',
@@ -54,6 +62,8 @@ export class FilesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
+    @Inject(forwardRef(() => AppealsService))
+    private readonly appeals: AppealsService,
   ) {}
 
   async attachToAppeal(appealId: string, files: Express.Multer.File[], uploadedById?: string) {
@@ -79,15 +89,30 @@ export class FilesService {
     return created;
   }
 
-  async findOne(id: string) {
-    const file = await this.prisma.appealAttachment.findUnique({ where: { id } });
+  /** Faylni topib, so'rovchining unga (murojaat orqali) kirish huquqini tekshiradi */
+  private async findWithAccess(id: string, actor: AuthUser) {
+    const file = await this.prisma.appealAttachment.findUnique({
+      where: { id },
+      include: {
+        appeal: { select: { organizationId: true, assignedToId: true, createdById: true } },
+      },
+    });
     if (!file) throw new NotFoundException('Fayl topilmadi');
-    return { ...file, url: await this.storage.getUrl(file.filePath) };
+    this.appeals.assertAccess(file.appeal, actor);
+    return file;
   }
 
-  async resolveRaw(id: string) {
-    const file = await this.prisma.appealAttachment.findUnique({ where: { id } });
-    if (!file) throw new NotFoundException('Fayl topilmadi');
+  async findOne(id: string, actor: AuthUser) {
+    const file = await this.findWithAccess(id, actor);
+    // Lokal fayllar himoyalangan endpoint orqali; S3 esa qisqa muddatli presigned URL
+    const url = file.filePath.startsWith('s3:')
+      ? await this.storage.getUrl(file.filePath)
+      : `/files/${file.id}/raw`;
+    return { ...file, appeal: undefined, url };
+  }
+
+  async resolveRaw(id: string, actor: AuthUser) {
+    const file = await this.findWithAccess(id, actor);
     return { file, target: await this.storage.resolve(file.filePath) };
   }
 }
