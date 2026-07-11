@@ -27,6 +27,12 @@ export class AuthService {
     return createHash('sha256').update(value).digest('hex');
   }
 
+  /** Foydalanuvchi uchun token juftligi yaratish (OneID/tashqi kirish uchun public) */
+  async issueTokensFor(user: User) {
+    const tokens = await this.signTokens(user);
+    return { user: this.sanitize(user), ...tokens };
+  }
+
   private async signTokens(user: User) {
     const payload = {
       sub: user.id,

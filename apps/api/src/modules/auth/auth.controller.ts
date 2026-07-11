@@ -1,7 +1,19 @@
-import { Body, Controller, Get, Headers, Ip, Post, UnauthorizedException } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Headers,
+  Ip,
+  Post,
+  Query,
+  Res,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
+import { Response } from 'express';
 import { AuthService } from './auth.service';
+import { OneIdService } from './oneid.service';
 import {
   LoginDto,
   RefreshDto,
@@ -17,7 +29,34 @@ import { AuthUser, CurrentUser } from '../../common/decorators/current-user.deco
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly oneId: OneIdService,
+  ) {}
+
+  @Public()
+  @Get('oneid/login')
+  @ApiOperation({ summary: 'OneID (id.egov.uz) orqali kirishni boshlash' })
+  oneidLogin(@Res() res: Response) {
+    const { url } = this.oneId.buildAuthUrl();
+    return res.redirect(url);
+  }
+
+  @Public()
+  @Get('oneid/callback')
+  @ApiOperation({ summary: 'OneID callback — token bilan web portalga qaytadi' })
+  async oneidCallback(@Query('code') code: string, @Res() res: Response) {
+    const webUrl = (process.env.WEB_URL || 'http://localhost:3000').split(',')[0];
+    try {
+      const user = await this.oneId.handleCallback(code);
+      const { accessToken, refreshToken } = await this.authService.issueTokensFor(user);
+      return res.redirect(
+        `${webUrl}/oneid?access=${accessToken}&refresh=${refreshToken}`,
+      );
+    } catch (e) {
+      return res.redirect(`${webUrl}/login?oneid_error=1`);
+    }
+  }
 
   @Public()
   @Post('login')

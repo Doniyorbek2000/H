@@ -20,7 +20,7 @@ Hokimliklar, davlat tashkilotlari va kommunal xizmatlar uchun **AI asosidagi mur
 - 🧠 **AI Analytics** — sentiment taqsimoti, AI kategoriya aniqligi, kalit so'zlar buluti, dublikat guruhlar statistikasi (`/ai-analytics`)
 - 🤝 **Takroriy murojaatlar** — yaratishda semantik o'xshashlik bo'yicha avto-aniqlash, operator tomonidan birlashtirish (`POST /appeals/:id/merge`), fuqaroga xabar
 - 🔄 **To'liq ijro sikli** — **hamijrochilar** (co-executor), **muddat uzaytirish** (sabab + audit), **eskalatsiya** (rahbarlarga ko'tarish), **fuqaro shikoyati** (web/bot `/shikoyat`)
-- 🔐 **Xavfsizlik** — JWT access/refresh (rotation), rol asosidagi ruxsatlar, tashkilot doirasi (org scope), fayl kirish nazorati (egalik+org), login/register throttle, **OTP (SMS/email) + parol tiklash**, MIME **magic-byte** tekshiruvi, helmet, audit log, strukturaviy JSON log (pino)
+- 🔐 **Xavfsizlik** — JWT access/refresh (rotation), rol asosidagi ruxsatlar, tashkilot doirasi (org scope), fayl kirish nazorati (egalik+org), login/register throttle, **OTP (SMS/email) + parol tiklash**, **OneID (id.egov.uz)** orqali kirish, MIME **magic-byte** + **ClamAV virus** tekshiruvi, helmet, audit log, strukturaviy JSON log (pino), **Sentry** xato monitoring
 - 📱 **Telegram bot** — to'liq **o'zbek/rus** tillarida; fuqaro: murojaat yuborish/kuzatish/baholash; xodim: /hisobot, /bugun, /kechikkanlar
 - 🗄 **Storage abstraksiyasi** — default lokal disk; `S3_*` env berilsa **MinIO/S3** ga yuklaydi (presigned URL), `docker compose --profile s3` bilan lokal MinIO
 
