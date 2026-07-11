@@ -14,7 +14,8 @@ Rahbarlar va xodimlar uchun mobil ilova: biriktirilgan murojaatlar, dashboard, A
 - 🎤 **Ovozli izoh** — mikrofon orqali yozib (m4a/AAC) murojaatga biriktiriladi (`record`)
 - 🔲 **QR skaner** — murojaat QR kodini o'qib holatini ko'rsatadi (`mobile_scanner`)
 - 🔔 **Bildirishnomalar** — ro'yxat, o'qilgan belgisi, bosganda murojaatga o'tish (30s polling; FCM push pastda)
-- 📴 **Offline rejim** — GET javoblari keshlanadi, internet yo'qolsa keshdan ko'rsatiladi (banner bilan)
+- 📴 **Offline rejim** — GET javoblari keshlanadi (banner bilan); holat o'zgartirish/izoh oflaynda **navbatga saqlanadi** (outbox) va aloqa tiklanganda avtomatik yuboriladi
+- 🔔 **FCM push** — Firebase orqali qabul qilinadi, push bosilganda kerakli murojaat sahifasi ochiladi (Firebase sozlanmagan bo'lsa jimgina polling'ga tushadi)
 - ⚙️ **Server sozlamasi** — login ekranida API manzilini o'zgartirish mumkin
 
 ## Ishga tushirish
@@ -59,21 +60,31 @@ iOS (`ios/Runner/Info.plist` ga qo'shing):
 
 ## Push bildirishnomalar (FCM)
 
-**Backend to'liq tayyor**: `User.fcmToken` maydoni, `POST /auth/fcm-token` endpointi va
-FCM HTTP v1 orqali yuborish (`PushService`) allaqachon ishlaydi — server `.env` da
-`FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY` (service account)
-to'ldirilsa, har bir notification qurilmaga push sifatida ham boradi.
+Ilova va backend **to'liq tayyor**: `firebase_core`/`firebase_messaging` ulangan,
+`PushService` tokenni backendga yuboradi, push bosilganda murojaat sahifasi ochiladi,
+logoutda token o'chiriladi. Backend `PushService` (FCM HTTP v1) qurilmaga yuboradi.
 
-Ilova tomonida qolgan yagona qadam (Firebase konfiguratsiyasini talab qiladi):
+Ishga tushirish uchun **Firebase konfiguratsiyasi** kerak (aks holda push jimgina o'chadi,
+polling ishlaydi):
 
-1. Firebase loyihasi yarating, `google-services.json` (Android) / `GoogleService-Info.plist` (iOS) qo'shing
-2. `firebase_messaging` paketini ulang va olingan tokenni saqlang:
-   ```dart
-   final fcmToken = await FirebaseMessaging.instance.getToken();
-   await ApiClient.instance.post('/auth/fcm-token', {'token': fcmToken});
+1. Firebase loyihasi yarating
+2. `google-services.json` ni `android/app/` ga, `GoogleService-Info.plist` ni `ios/Runner/` ga qo'shing
+3. Android: `android/app/build.gradle.kts` da `com.google.gms.google-services` plaginini yoqing (izohdan oching)
+4. Server `.env` da `FIREBASE_PROJECT_ID/CLIENT_EMAIL/PRIVATE_KEY` (service account) to'ldiring
+
+## Release imzo (Android)
+
+Play Market uchun signing sozlangan (`android/app/build.gradle.kts`):
+
+1. Keystore yarating:
+   ```bash
+   keytool -genkey -v -keystore ~/sm-release.jks -keyalg RSA -keysize 2048 -validity 10000 -alias sm-release
    ```
+2. `android/key.properties.example` ni `android/key.properties` deb nusxalab to'ldiring
+   (bu fayl `.gitignore` da — git'ga kirmaydi)
+3. `flutter build appbundle --release` — endi release kaliti bilan imzolanadi (minify+shrink yoqilgan)
 
-Ungacha bildirishnomalar 30 soniyalik polling bilan ishlaydi.
+`key.properties` bo'lmasa debug kaliti ishlatiladi (lokal `flutter run --release` uchun).
 
 ## Tekshirilgan
 

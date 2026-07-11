@@ -1,0 +1,10 @@
+# Release imzo kaliti sozlamalari (bu faylni key.properties deb nusxalang).
+# Keystore yaratish:
+#   keytool -genkey -v -keystore ~/sm-release.jks -keyalg RSA -keysize 2048 \
+#           -validity 10000 -alias sm-release
+#
+# key.properties git'ga KIRITILMAYDI (.gitignore da).
+storePassword=CHANGE_ME
+keyPassword=CHANGE_ME
+keyAlias=sm-release
+storeFile=/absolute/path/to/sm-release.jks

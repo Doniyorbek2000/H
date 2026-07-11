@@ -9,6 +9,7 @@ import 'package:record/record.dart';
 import 'package:signature/signature.dart';
 
 import '../api/api_client.dart';
+import '../api/offline_queue.dart';
 import '../util/labels.dart';
 
 class AppealDetailScreen extends StatefulWidget {
@@ -66,6 +67,32 @@ class _AppealDetailScreenState extends State<AppealDetailScreen> {
     }
   }
 
+  /// Tarmoqqa bog'liq amal: internet yo'q bo'lsa (status 0) offline navbatga
+  /// saqlanadi va aloqa tiklanganda avtomatik yuboriladi.
+  Future<void> _runQueued(String method, String path, Object? body, String ok) async {
+    setState(() => _busy = true);
+    try {
+      if (method == 'POST') {
+        await ApiClient.instance.post(path, body);
+      } else {
+        await ApiClient.instance.patch(path, body);
+      }
+      _snack(ok);
+      await _load();
+    } on ApiException catch (e) {
+      if (e.status == 0) {
+        await OfflineQueue.instance.enqueue(method, path, body);
+        _snack('📴 Internet yo‘q — amal navbatga saqlandi, aloqa tiklanganda yuboriladi');
+      } else {
+        _snack(e.message, error: true);
+      }
+    } catch (e) {
+      _snack(e.toString(), error: true);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   Future<void> _changeStatus() async {
     final status = await showModalBottomSheet<String>(
       context: context,
@@ -81,21 +108,24 @@ class _AppealDetailScreenState extends State<AppealDetailScreen> {
       ),
     );
     if (status == null) return;
-    await _run(
-      () => ApiClient.instance
-          .post('/appeals/${widget.appealId}/status', {'status': status}),
+    await _runQueued(
+      'POST',
+      '/appeals/${widget.appealId}/status',
+      {'status': status},
       'Holat yangilandi',
     );
   }
 
   Future<void> _addComment() async {
     if (_comment.text.trim().isEmpty) return;
-    await _run(
-      () => ApiClient.instance
-          .post('/appeals/${widget.appealId}/comment', {'message': _comment.text.trim()}),
+    final msg = _comment.text.trim();
+    _comment.clear();
+    await _runQueued(
+      'POST',
+      '/appeals/${widget.appealId}/comment',
+      {'message': msg},
       'Izoh qo‘shildi',
     );
-    _comment.clear();
   }
 
   Future<void> _uploadPhoto(ImageSource source) async {
