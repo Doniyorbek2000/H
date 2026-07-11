@@ -11,6 +11,7 @@ Rahbarlar va xodimlar uchun mobil ilova: biriktirilgan murojaatlar, dashboard, A
 - 📷 **Foto yuklash** — kamera yoki galereyadan, murojaatga biriktiriladi
 - 📍 **GPS** — joriy joylashuvni murojaatga biriktirish (`geolocator`)
 - ✍️ **Elektron imzo** — imzo chizib PNG sifatida biriktiriladi + ichki izoh
+- 🎤 **Ovozli izoh** — mikrofon orqali yozib (m4a/AAC) murojaatga biriktiriladi (`record`)
 - 🔲 **QR skaner** — murojaat QR kodini o'qib holatini ko'rsatadi (`mobile_scanner`)
 - 🔔 **Bildirishnomalar** — ro'yxat, o'qilgan belgisi, bosganda murojaatga o'tish (30s polling; FCM push pastda)
 - 📴 **Offline rejim** — GET javoblari keshlanadi, internet yo'qolsa keshdan ko'rsatiladi (banner bilan)
@@ -56,13 +57,23 @@ iOS (`ios/Runner/Info.plist` ga qo'shing):
 <string>Galereyadan foto tanlash uchun</string>
 ```
 
-## Push bildirishnomalar (FCM) — keyingi qadam
+## Push bildirishnomalar (FCM)
 
-Hozir bildirishnomalar 30 soniyalik polling bilan ishlaydi. Haqiqiy push uchun:
+**Backend to'liq tayyor**: `User.fcmToken` maydoni, `POST /auth/fcm-token` endpointi va
+FCM HTTP v1 orqali yuborish (`PushService`) allaqachon ishlaydi — server `.env` da
+`FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY` (service account)
+to'ldirilsa, har bir notification qurilmaga push sifatida ham boradi.
+
+Ilova tomonida qolgan yagona qadam (Firebase konfiguratsiyasini talab qiladi):
 
 1. Firebase loyihasi yarating, `google-services.json` (Android) / `GoogleService-Info.plist` (iOS) qo'shing
-2. `firebase_messaging` paketini ulang, FCM tokenni backendga yuboring
-   (User modeliga `fcmToken` maydoni qo'shib, `NotificationsService.notifyUser` da FCM'ga ham yuborish kifoya)
+2. `firebase_messaging` paketini ulang va olingan tokenni saqlang:
+   ```dart
+   final fcmToken = await FirebaseMessaging.instance.getToken();
+   await ApiClient.instance.post('/auth/fcm-token', {'token': fcmToken});
+   ```
+
+Ungacha bildirishnomalar 30 soniyalik polling bilan ishlaydi.
 
 ## Tekshirilgan
 

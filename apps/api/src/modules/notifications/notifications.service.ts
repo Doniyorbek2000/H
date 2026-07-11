@@ -3,6 +3,7 @@ import { NotificationType, Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TelegramSenderService } from './telegram-sender.service';
 import { NotificationsGateway } from './notifications.gateway';
+import { PushService } from './push.service';
 import { PaginationQueryDto, paginate } from '../../common/dto/pagination.dto';
 
 interface NotifyInput {
@@ -24,6 +25,7 @@ export class NotificationsService {
     private readonly prisma: PrismaService,
     private readonly telegram: TelegramSenderService,
     private readonly gateway: NotificationsGateway,
+    private readonly push: PushService,
   ) {}
 
   /** Bitta foydalanuvchiga in-app (+ ixtiyoriy Telegram) notification */
@@ -45,18 +47,23 @@ export class NotificationsService {
         type: input.type ?? NotificationType.SYSTEM,
         meta: input.meta,
       });
-      if (input.sendTelegram !== false) {
-        const user = await this.prisma.user.findUnique({
-          where: { id: input.userId },
-          select: { telegramChatId: true },
+      const user = await this.prisma.user.findUnique({
+        where: { id: input.userId },
+        select: { telegramChatId: true, fcmToken: true },
+      });
+      if (input.sendTelegram !== false && user?.telegramChatId) {
+        await this.telegram.sendMessage(
+          user.telegramChatId,
+          `<b>${input.title}</b>\n${input.message}`,
+          input.telegramButtons,
+        );
+      }
+      // Mobil push (FCM sozlangan bo'lsa)
+      if (user?.fcmToken) {
+        await this.push.sendToDevice(user.fcmToken, input.title, input.message, {
+          appealId: String((input.meta as any)?.appealId ?? ''),
+          type: String(input.type ?? NotificationType.SYSTEM),
         });
-        if (user?.telegramChatId) {
-          await this.telegram.sendMessage(
-            user.telegramChatId,
-            `<b>${input.title}</b>\n${input.message}`,
-            input.telegramButtons,
-          );
-        }
       }
     } catch (e) {
       this.logger.warn(`Notification yuborilmadi: ${(e as Error).message}`);

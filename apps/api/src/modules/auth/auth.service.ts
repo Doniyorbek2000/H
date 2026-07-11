@@ -137,6 +137,19 @@ export class AuthService {
     return this.sanitize(user as User);
   }
 
+  /** Mobil qurilma FCM tokenini saqlash (null — o'chirish, masalan logoutda) */
+  async setFcmToken(userId: string, token: string | null) {
+    if (token) {
+      // Bitta token faqat bitta foydalanuvchida bo'lsin
+      await this.prisma.user.updateMany({
+        where: { fcmToken: token, id: { not: userId } },
+        data: { fcmToken: null },
+      });
+    }
+    await this.prisma.user.update({ where: { id: userId }, data: { fcmToken: token } });
+    return { success: true };
+  }
+
   /** Telegram bot orqali xodim akkauntini chatId bilan bog'lash */
   async telegramLink(dto: TelegramLinkDto) {
     const user = await this.validateUser(dto.identifier, dto.password);

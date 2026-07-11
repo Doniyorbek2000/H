@@ -64,8 +64,8 @@ const DICT = {
   },
   sendLocationBtn: { uz: '📍 Lokatsiyani yuborish', ru: '📍 Отправить локацию' },
   askMedia: {
-    uz: '📷 Muammoni tasdiqlovchi rasm, video yoki hujjat yuborishingiz mumkin (5 tagacha, ixtiyoriy).\n\nTugatgach "{btn}" tugmasini bosing:',
-    ru: '📷 Можете отправить фото, видео или документ, подтверждающие проблему (до 5, необязательно).\n\nЗатем нажмите кнопку «{btn}»:',
+    uz: '📷 Muammoni tasdiqlovchi rasm, video, hujjat yoki 🎤 ovozli izoh yuborishingiz mumkin (5 tagacha, ixtiyoriy).\n\nTugatgach "{btn}" tugmasini bosing:',
+    ru: '📷 Можете отправить фото, видео, документ или 🎤 голосовое сообщение (до 5, необязательно).\n\nЗатем нажмите кнопку «{btn}»:',
   },
   continueBtn: { uz: '➡️ Davom etish', ru: '➡️ Продолжить' },
   mediaLimit: {
@@ -78,6 +78,10 @@ const DICT = {
   },
   videoAccepted: { uz: '✅ Video qabul qilindi ({n}/5).', ru: '✅ Видео принято ({n}/5).' },
   docAccepted: { uz: '✅ Hujjat qabul qilindi ({n}/5).', ru: '✅ Документ принят ({n}/5).' },
+  voiceAccepted: {
+    uz: '✅ Ovozli izoh qabul qilindi ({n}/5).',
+    ru: '✅ Голосовое сообщение принято ({n}/5).',
+  },
   confirmHeader: { uz: '📋 <b>Murojaatni tasdiqlang:</b>', ru: '📋 <b>Подтвердите обращение:</b>' },
   confirmTopic: { uz: '📌 Mavzu', ru: '📌 Тема' },
   confirmMahalla: { uz: '🏘 Mahalla', ru: '🏘 Махалля' },
