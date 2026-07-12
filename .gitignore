@@ -17,3 +17,7 @@ dump.rdb
 # Flutter release imzo (maxfiy)
 apps/mobile/android/key.properties
 apps/mobile/android/app/google-services.json
+
+# Playwright
+apps/web/test-results/
+apps/web/playwright-report/

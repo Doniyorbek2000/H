@@ -69,6 +69,15 @@ const DEMO_APPEALS: {
 ];
 
 async function main() {
+  // Production himoyasi: hammaga ma'lum '${PASSWORD}' parolli demo akkauntlar
+  // production bazasiga tushib qolmasligi kerak. Atayin kerak bo'lsa SEED_DEMO=true qo'ying.
+  if (process.env.NODE_ENV === 'production' && process.env.SEED_DEMO !== 'true') {
+    console.error(
+      '⛔ Production rejimida demo seed o‘chirilgan. Zaruratda SEED_DEMO=true bilan ishga tushiring.',
+    );
+    process.exit(1);
+  }
+
   console.log('🌱 Seed boshlandi...');
   const passwordHash = await bcrypt.hash(PASSWORD, 10);
 

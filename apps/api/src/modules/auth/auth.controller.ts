@@ -44,18 +44,38 @@ export class AuthController {
 
   @Public()
   @Get('oneid/callback')
-  @ApiOperation({ summary: 'OneID callback — token bilan web portalga qaytadi' })
-  async oneidCallback(@Query('code') code: string, @Res() res: Response) {
+  @ApiOperation({ summary: 'OneID callback — bir martalik kod bilan web portalga qaytadi' })
+  async oneidCallback(
+    @Query('code') code: string,
+    @Query('state') state: string,
+    @Res() res: Response,
+  ) {
     const webUrl = (process.env.WEB_URL || 'http://localhost:3000').split(',')[0];
     try {
+      // CSRF: callback faqat biz boshlagan login oqimidan kelgan bo'lishi kerak
+      if (!this.oneId.validateState(state)) {
+        return res.redirect(`${webUrl}/login?oneid_error=1`);
+      }
       const user = await this.oneId.handleCallback(code);
-      const { accessToken, refreshToken } = await this.authService.issueTokensFor(user);
-      return res.redirect(
-        `${webUrl}/oneid?access=${accessToken}&refresh=${refreshToken}`,
-      );
+      // Tokenlarni URL query stringga qo'ymaymiz (log/history/referer sizishi).
+      // O'rniga bir martalik qisqa kod beramiz — web uni POST bilan almashtiradi.
+      const exchange = this.oneId.issueExchangeCode(user.id);
+      return res.redirect(`${webUrl}/oneid?code=${exchange}`);
     } catch (e) {
       return res.redirect(`${webUrl}/login?oneid_error=1`);
     }
+  }
+
+  @Public()
+  @Post('oneid/exchange')
+  @Throttle({ default: { ttl: 60000, limit: 10 } })
+  @ApiOperation({ summary: 'OneID bir martalik kodni sessiya tokenlariga almashtirish' })
+  async oneidExchange(@Body() body: { code?: string }) {
+    const userId = this.oneId.consumeExchangeCode(body?.code ?? '');
+    if (!userId) throw new UnauthorizedException('Kod yaroqsiz yoki muddati o‘tgan');
+    const user = await this.authService.findUserById(userId);
+    if (!user) throw new UnauthorizedException('Foydalanuvchi topilmadi');
+    return this.authService.issueTokensFor(user);
   }
 
   @Public()

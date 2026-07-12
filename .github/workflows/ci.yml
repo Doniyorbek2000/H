@@ -43,6 +43,143 @@ jobs:
       - name: Build bot
         run: pnpm --filter @smart/bot build
 
+  e2e:
+    name: API e2e (Postgres + Redis)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: smart_murojaat
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/smart_murojaat?schema=public
+      REDIS_URL: redis://localhost:6379
+      JWT_ACCESS_SECRET: ci-access-secret
+      JWT_REFRESH_SECRET: ci-refresh-secret
+      NODE_ENV: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared package
+        run: pnpm --filter @smart/shared build
+
+      - name: Generate Prisma client
+        run: pnpm --filter @smart/api prisma:generate
+
+      - name: Apply migrations
+        run: pnpm --filter @smart/api prisma:deploy
+
+      - name: Seed database (tashkilot/kategoriyalar e2e uchun zarur)
+        run: pnpm --filter @smart/api seed
+
+      - name: Run API e2e tests
+        run: pnpm --filter @smart/api test:e2e
+
+  web-e2e:
+    name: Web e2e (Playwright)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: smart_murojaat
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/smart_murojaat?schema=public
+      REDIS_URL: redis://localhost:6379
+      JWT_ACCESS_SECRET: ci-access-secret
+      JWT_REFRESH_SECRET: ci-refresh-secret
+      NEXT_PUBLIC_API_URL: http://localhost:3001
+      API_PORT: '3001'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared package
+        run: pnpm --filter @smart/shared build
+
+      - name: Generate Prisma client
+        run: pnpm --filter @smart/api prisma:generate
+
+      - name: Apply migrations + seed
+        run: |
+          pnpm --filter @smart/api prisma:deploy
+          pnpm --filter @smart/api seed
+
+      - name: Build API
+        run: pnpm --filter @smart/api build
+
+      - name: Start API (background)
+        run: |
+          node apps/api/dist/main.js > /tmp/api.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:3001/health > /dev/null; then echo "API tayyor"; break; fi
+            sleep 1
+          done
+
+      - name: Build web
+        run: pnpm --filter @smart/web build
+
+      - name: Install Playwright browser
+        run: pnpm --filter @smart/web exec playwright install --with-deps chromium
+
+      - name: Run web e2e tests
+        run: pnpm --filter @smart/web test:e2e
+
   mobile:
     name: Flutter analyze + test
     runs-on: ubuntu-latest
