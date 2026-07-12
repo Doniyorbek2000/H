@@ -21,10 +21,21 @@ export class OneIdService {
     );
   }
 
+  // ===== CSRF himoyasi: OAuth `state` (login -> callback round-trip) =====
+  // login paytida yaratilgan state saqlanadi, callback'da faqat shu state qabul qilinadi.
+  private readonly stateStore = new Map<string, number>(); // state -> expiresAt
+
+  private pruneStates() {
+    const now = Date.now();
+    for (const [s, exp] of this.stateStore) if (exp < now) this.stateStore.delete(s);
+  }
+
   /** Foydalanuvchini OneID sahifasiga yo'naltirish uchun URL + state */
   buildAuthUrl(): { url: string; state: string } {
     if (!this.enabled) throw new BadRequestException('OneID sozlanmagan');
+    this.pruneStates();
     const state = randomBytes(16).toString('hex');
+    this.stateStore.set(state, Date.now() + 10 * 60 * 1000); // 10 daqiqa
     const params = new URLSearchParams({
       response_type: 'one_code',
       client_id: process.env.ONEID_CLIENT_ID!,
@@ -33,6 +44,19 @@ export class OneIdService {
       state,
     });
     return { url: `${this.base}?${params}`, state };
+  }
+
+  /** Callback'da qaytgan state haqiqiy va bir martalik ekanini tekshiradi (CSRF) */
+  validateState(state?: string): boolean {
+    if (!state) return false;
+    this.pruneStates();
+    const exp = this.stateStore.get(state);
+    if (!exp || exp < Date.now()) {
+      this.stateStore.delete(state);
+      return false;
+    }
+    this.stateStore.delete(state); // bir martalik
+    return true;
   }
 
   /** Authorization code -> access token */

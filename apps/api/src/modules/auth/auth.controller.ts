@@ -45,9 +45,17 @@ export class AuthController {
   @Public()
   @Get('oneid/callback')
   @ApiOperation({ summary: 'OneID callback — bir martalik kod bilan web portalga qaytadi' })
-  async oneidCallback(@Query('code') code: string, @Res() res: Response) {
+  async oneidCallback(
+    @Query('code') code: string,
+    @Query('state') state: string,
+    @Res() res: Response,
+  ) {
     const webUrl = (process.env.WEB_URL || 'http://localhost:3000').split(',')[0];
     try {
+      // CSRF: callback faqat biz boshlagan login oqimidan kelgan bo'lishi kerak
+      if (!this.oneId.validateState(state)) {
+        return res.redirect(`${webUrl}/login?oneid_error=1`);
+      }
       const user = await this.oneId.handleCallback(code);
       // Tokenlarni URL query stringga qo'ymaymiz (log/history/referer sizishi).
       // O'rniga bir martalik qisqa kod beramiz — web uni POST bilan almashtiradi.

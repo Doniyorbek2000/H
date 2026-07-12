@@ -51,4 +51,10 @@ describe('Security: fayllar + OneID (e2e)', () => {
     const res = await http.post('/auth/oneid/exchange').send({});
     expect(res.status).toBe(401);
   });
+
+  it('OneID callback noma’lum state bilan (CSRF) -> login xatosiga yo‘naltiradi', async () => {
+    const res = await http.get('/auth/oneid/callback?code=x&state=soxta-state');
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toContain('oneid_error=1');
+  });
 });
