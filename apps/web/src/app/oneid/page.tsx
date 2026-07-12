@@ -9,20 +9,24 @@ function OneIdInner() {
   const router = useRouter();
 
   useEffect(() => {
-    const access = params.get('access');
-    const refresh = params.get('refresh');
-    if (!access || !refresh) {
+    const code = params.get('code');
+    if (!code) {
       router.replace('/login?oneid_error=1');
       return;
     }
     (async () => {
-      // Tokenlarni saqlab, foydalanuvchi ma'lumotini olamiz
-      localStorage.setItem('sm_access', access);
-      localStorage.setItem('sm_refresh', refresh);
+      // Bir martalik kodni sessiya tokenlariga almashtiramiz (tokenlar URLda ko'rinmaydi)
       try {
-        const me = await api('/auth/me');
-        storeSession({ accessToken: access, refreshToken: refresh, user: me });
-        router.replace(me.role === 'CITIZEN' ? '/' : '/dashboard');
+        const session = await api('/auth/oneid/exchange', {
+          method: 'POST',
+          body: JSON.stringify({ code }),
+        });
+        storeSession({
+          accessToken: session.accessToken,
+          refreshToken: session.refreshToken,
+          user: session.user,
+        });
+        router.replace(session.user.role === 'CITIZEN' ? '/' : '/dashboard');
       } catch {
         router.replace('/login?oneid_error=1');
       }

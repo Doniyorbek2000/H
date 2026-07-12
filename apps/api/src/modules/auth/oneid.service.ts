@@ -114,4 +114,24 @@ export class OneIdService {
     }
     return user;
   }
+
+  // ===== Bir martalik ulash kodi (tokenlar URL ga chiqmasligi uchun) =====
+  // callback -> qisqa kod (60s), web uni POST bilan tokenga almashtiradi.
+  private readonly exchangeStore = new Map<string, { userId: string; expiresAt: number }>();
+
+  issueExchangeCode(userId: string): string {
+    const code = randomBytes(24).toString('hex');
+    this.exchangeStore.set(code, { userId, expiresAt: Date.now() + 60000 });
+    return code;
+  }
+
+  consumeExchangeCode(code: string): string | null {
+    const entry = this.exchangeStore.get(code);
+    if (!entry || entry.expiresAt < Date.now()) {
+      this.exchangeStore.delete(code);
+      return null;
+    }
+    this.exchangeStore.delete(code); // bir martalik
+    return entry.userId;
+  }
 }

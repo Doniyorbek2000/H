@@ -27,6 +27,11 @@ export class AuthService {
     return createHash('sha256').update(value).digest('hex');
   }
 
+  /** ID bo'yicha foydalanuvchi (OneID exchange uchun) */
+  findUserById(id: string): Promise<User | null> {
+    return this.prisma.user.findUnique({ where: { id } });
+  }
+
   /** Foydalanuvchi uchun token juftligi yaratish (OneID/tashqi kirish uchun public) */
   async issueTokensFor(user: User) {
     const tokens = await this.signTokens(user);
