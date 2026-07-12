@@ -27,11 +27,20 @@ class ApiClient {
   static final ApiClient instance = ApiClient._();
 
   static const _storage = FlutterSecureStorage();
-  String baseUrl = 'http://10.0.2.2:3001'; // Android emulator -> host
+
+  /// Build-vaqti default server manzili. Production build uchun:
+  /// `flutter build appbundle --dart-define=SERVER_URL=https://murojaat.example.uz`
+  /// Berilmasa dev default (Android emulator -> host) ishlatiladi.
+  static const _defaultServerUrl = String.fromEnvironment(
+    'SERVER_URL',
+    defaultValue: 'http://10.0.2.2:3001',
+  );
+  String baseUrl = _defaultServerUrl;
 
   Future<void> init() async {
+    // Foydalanuvchi qo'lda kiritgan manzil (agar bor bo'lsa) build defaultidan ustun.
     final prefs = await SharedPreferences.getInstance();
-    baseUrl = prefs.getString('server_url') ?? baseUrl;
+    baseUrl = prefs.getString('server_url') ?? _defaultServerUrl;
   }
 
   Future<void> setServer(String url) async {
